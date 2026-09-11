@@ -36,6 +36,10 @@ These explicitly verify:
 2. User A cannot `UPDATE` / `DELETE` User B rows.
 3. Authenticated clients cannot read `mail_account_secrets`.
 4. User A can still read their own `mail_accounts`.
+5. Owners can correct their own classification through the atomic RPC.
+6. User A cannot correct User B's classification.
+7. Authenticated clients cannot bypass correction auditing with direct table updates.
+8. A successful default Recap visit advances one refresh-stable window atomically and duplicate calls are no-ops.
 
 ### Prerequisites
 
@@ -74,6 +78,16 @@ Run it only after the local Supabase stack, migrated database, and EasyMail prod
 npm run verify:phase9
 ```
 
+## Phase 10 local review fixture
+
+`scripts/seed-phase10-demo.mjs` creates a deterministic, local-only Recap dataset for an existing local auth user. It refuses non-local Supabase hosts, creates no provider credentials or secret rows, and marks every fixture account/message with a `phase10-demo-` provider identifier. If the local stack has multiple users, set `DEMO_USER_EMAIL` before running it.
+
+```bash
+npm run seed:phase10-demo
+```
+
+The fixture covers all five intents, both providers, partial target-account setup, realistic message density, and one pending-classification state. It is development data only and is not a provider-sync substitute.
+
 ### CI note
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, and build. The RLS job is present but disabled (`if: false`) until a Docker-capable runner is configured. Enable it when local Supabase can run in CI.
@@ -95,3 +109,11 @@ Never reuse production OAuth clients or encryption keys in local/CI.
 - Visually checked: landing and authentication at desktop width; landing at 390px mobile width.
 - Passed against the reset local Supabase stack: live signup/sign-in, profile trigger, recovery email, SSR session cookie, protected route, logout/guard/re-login form flow, owner access, cross-user isolation, anonymous isolation, and secret-table isolation.
 - Passed with `RUN_RLS_TESTS=1`: all four dedicated RLS tests ran with no skips.
+
+## Phase 10 checkpoint verification status
+
+- Passed on 2026-09-11: format check, lint, typecheck, 17 unit tests, and Next.js 16.3.4 production build.
+- Passed against local Supabase with `RUN_RLS_TESTS=1`: all 8 RLS tests ran with no skips, including owner correction, cross-user denial, direct-write denial, and recap-visit idempotence.
+- Local review fixture seeded successfully: 9 classified messages plus 1 pending message, with no provider credentials or secret rows.
+- Final authenticated browser verification covers the rendered Recap, keyboard-visible rounded brand focus, all five full correction-select labels at a measured width of at least 220px, real server-action correction plus one audit row, refresh-stable visit behavior inside 30 minutes, rollover after expiry, and no visit advancement from triage, detail/correction, settings, or alternate Recap windows.
+- A runtime regression found during this verification was fixed: the `"use server"` classification module now exports only its async action; client initial state lives in the client component.

@@ -2,7 +2,7 @@
 
 > Phase 7 — core data model for EasyMail MVP.  
 > Aligns with `ARCHITECTURE.md`, `MVP.md`, `UX.md`, `SECURITY.md`, DEC-009.  
-> Authoritative SQL for Phase 8+: `supabase/migrations/20260910220000_initial_schema.sql`.
+> Authoritative SQL for Phase 8+: the ordered migrations in `supabase/migrations/`.
 
 ## Ownership Rule (non-negotiable)
 
@@ -44,12 +44,14 @@ App-level user profile (1:1 with `auth.users`).
 | --- | --- | --- | --- |
 | `id` | `uuid` | PK, FK → `auth.users.id` ON DELETE CASCADE | Same as auth user |
 | `display_name` | `text` | nullable | Optional |
-| `last_recap_visit_at` | `timestamptz` | nullable | Powers “since last visit” window |
+| `last_recap_visit_at` | `timestamptz` | nullable | Most recent successfully loaded default Recap visit |
+| `recap_session_started_at` | `timestamptz` | nullable | Starts the short refresh-stable viewing session |
+| `recap_window_start_at` | `timestamptz` | nullable | Preserves the prior visit boundary during that session |
 | `onboarding_completed_at` | `timestamptz` | nullable | Checklist complete marker (optional) |
 | `created_at` | `timestamptz` | not null, default now() | |
 | `updated_at` | `timestamptz` | not null, default now() | |
 
-**RLS:** `id = auth.uid()` for SELECT/UPDATE; INSERT on signup (trigger).
+**RLS:** `id = auth.uid()` for SELECT/UPDATE; INSERT on signup (trigger). The default Recap reads the previous visit boundary, loads its data, then calls the owner-scoped `record_recap_visit` function. That function advances `last_recap_visit_at` once and retains the original window for a 30-minute refresh-stable session. Triage, detail, alternate Recap windows, and settings do not advance it.
 
 ---
 
@@ -169,7 +171,7 @@ Append-only audit for trust/eval.
 | `to_intent` | `text` | not null | |
 | `created_at` | `timestamptz` | not null, default now() | |
 
-**RLS:** owner SELECT/INSERT; no UPDATE/DELETE from clients.
+**RLS:** owner SELECT. Corrections are created only through the atomic owner-scoped correction function; direct INSERT/UPDATE/DELETE is revoked from authenticated clients.
 
 ---
 

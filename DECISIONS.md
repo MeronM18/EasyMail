@@ -312,3 +312,30 @@ The foundation now demonstrates the intended restraint and product-specific iden
 - Foundation surfaces keep their current tokens; no broad restyle in Phase 9.
 - Geist Sans and `#1F5FA9` stay provisional; changing them is a later design-system decision, not a per-component choice.
 - The Phase 9 visual-review gate is resolved; the remaining Phase 9 gate is live Supabase auth/session and RLS verification in a capable environment.
+
+
+---
+
+### DEC-013 — Approve the Phase 10 authenticated product visual direction
+
+**Date:** 2026-09-11
+**Status:** Accepted
+
+### Context
+
+Phase 10 introduced representative authenticated Recap, triage, message-detail, and classification-correction surfaces. The product owner reviewed the initial structure and a focused density/hierarchy refinement.
+
+### Decision
+
+Approve the restrained, neutral-first authenticated product direction and its recap-first information hierarchy. Preserve the governing `DESIGN_SYSTEM.md`, the shared neutral intent-label language, and the distinction between intent and inbox filtering. Retain keyboard-visible focus and sufficient control widths. Geist Sans and primary blue `#1F5FA9` remain provisional and are not finalized by this approval.
+
+### Why
+
+The authenticated product now communicates EasyMail's attention-layer value with enough density and clarity while avoiding full-email-client patterns or generic card-heavy dashboard styling.
+
+### Consequences
+
+- Phase 10 needs no further visual redesign before its final approval.
+- Future changes preserve the approved information hierarchy unless a new product decision is recorded.
+- Typography and primary brand color remain open decisions; individual components must not diverge from the current shared tokens.
+- Phase 11 provider integration remains separately gated.

@@ -113,13 +113,30 @@ async function seedMailData(
       from_address: "sender@example.com",
       subject: `${label} subject`,
       snippet: `${label} snippet`,
-      classification_status: "pending",
+      classification_status: "classified",
     })
     .select("id")
     .single();
 
   if (messageError || !message) {
     throw messageError ?? new Error("Failed to insert message");
+  }
+
+  const { error: classificationError } = await admin
+    .from("message_classifications")
+    .insert({
+      message_id: message.id,
+      user_id: userId,
+      model_intent: "needs_reply",
+      effective_intent: "needs_reply",
+      reason: "RLS correction test fixture",
+      is_user_override: false,
+      model_id: "rls-fixture",
+      classified_at: new Date().toISOString(),
+    });
+
+  if (classificationError) {
+    throw classificationError;
   }
 
   return { accountId: account.id, messageId: message.id };
@@ -252,5 +269,113 @@ describeRls("RLS cross-user isolation", () => {
     expect(error).toBeNull();
     expect(data).toHaveLength(1);
     expect(data?.[0]?.id).toBe(userA.accountId);
+  });
+
+  it("records one refresh-stable recap visit window atomically", async ({ skip }) => {
+    if (!supabaseReachable) skip();
+
+    const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: recorded, error: recordError } = await userA.client.rpc(
+      "record_recap_visit",
+      {
+        p_previous_visit_at: null,
+        p_window_start_at: windowStart,
+      },
+    );
+    expect(recordError).toBeNull();
+    expect(recorded).toBe(true);
+
+    const { data: firstProfile } = await admin
+      .from("profiles")
+      .select("last_recap_visit_at,recap_session_started_at,recap_window_start_at")
+      .eq("id", userA.user.id)
+      .single();
+    expect(firstProfile?.last_recap_visit_at).toBeTruthy();
+    expect(firstProfile?.recap_session_started_at).toBeTruthy();
+    expect(new Date(firstProfile?.recap_window_start_at ?? 0).valueOf()).toBe(
+      new Date(windowStart).valueOf(),
+    );
+
+    const { data: duplicate, error: duplicateError } = await userA.client.rpc(
+      "record_recap_visit",
+      {
+        p_previous_visit_at: null,
+        p_window_start_at: new Date().toISOString(),
+      },
+    );
+    expect(duplicateError).toBeNull();
+    expect(duplicate).toBe(false);
+
+    const { data: unchangedProfile } = await admin
+      .from("profiles")
+      .select("last_recap_visit_at,recap_window_start_at")
+      .eq("id", userA.user.id)
+      .single();
+    expect(unchangedProfile?.last_recap_visit_at).toBe(firstProfile?.last_recap_visit_at);
+    expect(new Date(unchangedProfile?.recap_window_start_at ?? 0).valueOf()).toBe(
+      new Date(windowStart).valueOf(),
+    );
+  });
+
+  it("an owner can correct a classification through the atomic RPC", async ({ skip }) => {
+    if (!supabaseReachable) skip();
+
+    const { error } = await userA.client.rpc("correct_message_classification", {
+      p_message_id: userA.messageId,
+      p_to_intent: "matters",
+    });
+    expect(error).toBeNull();
+
+    const { data: classification } = await admin
+      .from("message_classifications")
+      .select("effective_intent,is_user_override")
+      .eq("message_id", userA.messageId)
+      .single();
+    expect(classification).toMatchObject({
+      effective_intent: "matters",
+      is_user_override: true,
+    });
+
+    const { data: corrections } = await admin
+      .from("classification_corrections")
+      .select("from_intent,to_intent,user_id")
+      .eq("message_id", userA.messageId);
+    expect(corrections).toEqual([
+      {
+        from_intent: "needs_reply",
+        to_intent: "matters",
+        user_id: userA.user.id,
+      },
+    ]);
+  });
+
+  it("User A cannot correct User B's classification", async ({ skip }) => {
+    if (!supabaseReachable) skip();
+
+    const { error } = await userA.client.rpc("correct_message_classification", {
+      p_message_id: userB.messageId,
+      p_to_intent: "can_ignore",
+    });
+    expect(error).not.toBeNull();
+
+    const { data: classification } = await admin
+      .from("message_classifications")
+      .select("effective_intent,is_user_override")
+      .eq("message_id", userB.messageId)
+      .single();
+    expect(classification).toMatchObject({
+      effective_intent: "needs_reply",
+      is_user_override: false,
+    });
+  });
+
+  it("authenticated clients cannot bypass correction auditing", async ({ skip }) => {
+    if (!supabaseReachable) skip();
+
+    const { error } = await userA.client
+      .from("message_classifications")
+      .update({ effective_intent: "can_ignore" })
+      .eq("message_id", userA.messageId);
+    expect(error).not.toBeNull();
   });
 });

@@ -17,7 +17,8 @@
     "verify:phase9": "node scripts/verify-phase9.mjs",
     "supabase:start": "npx supabase start",
     "supabase:stop": "npx supabase stop",
-    "supabase:reset": "npx supabase db reset"
+    "supabase:reset": "npx supabase db reset",
+    "seed:phase10-demo": "node --env-file=.env.local scripts/seed-phase10-demo.mjs"
   },
   "repository": {
     "type": "git",

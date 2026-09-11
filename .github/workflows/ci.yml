@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    name: Lint, typecheck, unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+
+  rls:
+    name: RLS isolation tests
+    runs-on: ubuntu-latest
+    # Local Supabase needs Docker. Skip by default until a services-enabled runner
+    # is configured. Set secrets + enable this job when ready.
+    if: ${{ false }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx supabase start
+      - run: npx supabase db reset
+      - name: Export Supabase env
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=$(npx supabase status -o env | sed -n 's/API_URL=//p')" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(npx supabase status -o env | sed -n 's/ANON_KEY=//p')" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(npx supabase status -o env | sed -n 's/SERVICE_ROLE_KEY=//p')" >> "$GITHUB_ENV"
+      - run: npm run test:rls
+        env:
+          RUN_RLS_TESTS: "1"

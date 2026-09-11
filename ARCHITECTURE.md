@@ -107,6 +107,16 @@
 7. **Data store** — Postgres (accounts, messages, labels, corrections, sync cursors, job runs)  
 8. **Secrets** — Env vars on Vercel; app-level encryption key for refresh tokens (details Phase 7)
 
+### Phase 9 foundation implementation
+
+- Public, authentication, and protected App Router groups establish the route boundary.
+- Supabase browser/server clients are request-appropriate and share generated-style database types for foundation tables.
+- Next.js Proxy refreshes cookie sessions; protected layouts and data access verify the user again with Supabase.
+- Foundation data reads derive `user_id` from the verified session and select only required columns; Postgres RLS remains the structural backstop.
+- Server Actions handle signup, sign-in, confirmation, recovery, password update, and logout with server-side Zod validation and controlled error messages.
+- API routes use a common `{ data }` / `{ error: { code, message } }` envelope; structured logs exclude credentials and mail content.
+- The implementation stops before mailbox OAuth, sync, classification, and recap behavior.
+
 ---
 
 ## Major Data / Request Flows

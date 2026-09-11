@@ -5,11 +5,11 @@
 ## Build Status
 
 * **Project initialized:** Yes
-* **Current phase:** Phase 8 — Project Setup (complete; awaiting approval to start Phase 9)
-* **Current objective:** Hold for product-owner approval before beginning Phase 9 — Foundation Build.
-* **Next milestone:** Phase 9 — Foundation Build (app shell, auth, DB/session patterns). No product features (recap/OAuth/sync/classify) until then.
-* **Design gate:** `DESIGN_SYSTEM.md` (DEC-011) **approved** as governing UI constraints. Geist Sans + `#1F5FA9` provisional pending first visual design review; visual review required before finalizing UI identity. No substantial frontend styling before Phase 9. Phase 5 UX flows (`UX.md`) fixed.
-* **Last updated:** 2026-09-10
+* **Current phase:** Phase 9 — Foundation Build (complete; Phase 10 not started)
+* **Current objective:** Hold at the approved Phase 9 checkpoint. Phase 10 remains outside the current scope.
+* **Next milestone:** Phase 10 planning only after a separate explicit product-owner instruction.
+* **Design gate:** Resolved by DEC-012. The restrained, content-first Phase 9 direction is approved; Geist Sans and `#1F5FA9` remain provisional until the authenticated Recap UI provides the next meaningful design-review context.
+* **Last updated:** 2026-09-11
 
 ## Phase Progress
 
@@ -21,7 +21,7 @@
 * [x] Phase 6 — Technical Architecture
 * [x] Phase 7 — Data & Security Design
 * [x] Phase 8 — Project Setup
-* [ ] Phase 9 — Foundation Build
+* [x] Phase 9 — Foundation Build
 * [ ] Phase 10 — Core Product Build
 * [ ] Phase 11 — Integrations
 * [ ] Phase 12 — Edge Cases & Reliability
@@ -38,9 +38,12 @@
 
 ## Current Work
 
-* Phase 8 tooling complete: Next.js App Router + TypeScript, ESLint/Prettier, Vitest, Supabase CLI + initial migration, env schema, CI.
-* RLS cross-user isolation tests under `tests/rls/` (require Docker + `supabase start`; skip when env unavailable).
-* Waiting for approval to begin Phase 9 — Foundation Build.
+* Phase 8 rollback commit: `d6ca8a0` (`chore: checkpoint completed phase 8 setup`).
+* Phase 9 foundation implemented: public landing, auth screens/actions/callback/recovery, cookie-session proxy, protected app shell, settings/logout, typed Supabase clients, ownership-safe data access, shared UI primitives, safe errors, structured logging, config-aware health endpoint.
+* Phase 9 visual direction approved by DEC-012; final typography and primary color remain intentionally provisional until the Phase 10 Recap UI review.
+* Local Supabase migration, live auth/session verification, and forced cross-user RLS isolation tests passed on 2026-09-11.
+* Product owner manually verified the configured localhost UI/auth flow and approved the final Phase 9 review on 2026-09-11.
+* Phase 10 functionality remains absent: no provider OAuth routes, mailbox sync, classification, recap generation, drafting, or mail actions were introduced.
 
 ## Completed Decisions
 
@@ -55,6 +58,7 @@
 * DEC-009 — User-owned schema; isolated AES-256-GCM tokens; body ≤7d / messages ≤14d; overrides not clobbered; cascade delete; rate limits. **Preserved.**
 * DEC-010 — Mailopoly primary competitor; stay-native attention layer; Mailopoly-class unified inbox/EA is MVP non-goal. **Preserved.**
 * DEC-011 — Approved UI/design constraints (`DESIGN_SYSTEM.md`); Geist + `#1F5FA9` provisional pending visual design review.
+* DEC-012 — Phase 9 visual direction approved; final identity deferred to the authenticated Recap UI.
 
 ## Open Questions
 
@@ -68,7 +72,7 @@
 
 ## Blocking Decisions
 
-None for Phase 8. Do not start Phase 9 until the product owner approves.
+None for Phase 9. Phase 10 has not been authorized or started.
 
 ## Major Risks
 
@@ -79,28 +83,38 @@ None for Phase 8. Do not start Phase 9 until the product owner approves.
 * **Token storage:** high-value secrets — AES-256-GCM + service-role-only table required in build.
 * **Deep link fragility:** use Graph `webLink` / best-effort Gmail URLs + UX fallbacks.
 * **Mailopoly competitive overlap:** same JTBD; hold stay-native / intent / classify-only wedge (DEC-010).
-* **Local Docker:** may be unavailable — RLS live run needs Docker + `supabase start`.
 
 ## Deferred / Later
 
 * Gmail Pub/Sub push sync, LLM narrative recaps, payments, push digests, native apps
 * EasyMail-as-MCP server (optional H1 from `MCP_EVALUATION.md`)
-* Auth UI, OAuth flows, sync, classify, recap → Phase 9+
+* Gmail/Outlook OAuth flows, sync, classify, recap → Phase 10+
 
 ## Recent Progress
 
-* Phase 8 scaffold: Next.js 16 + TypeScript + Tailwind + ESLint/Prettier; Zod env; Supabase client stubs; `.env.example`; `.gitignore`.
-* Initial migration with RLS (`(select auth.uid())`), profile trigger, secrets/oauth revoke, partial unique sync index, classification user-match trigger.
-* Unit tests + RLS cross-user isolation suite (`npm run test:rls`); CI workflow; `TESTING.md`.
-* Verified: `lint`, `typecheck`, `test`, `build` exit 0. RLS skipped without local Supabase.
-* Restored full `SCHEMA.md` / `SECURITY.md` after transient I/O damage during recovery.
-* DEC-008 / DEC-009 / DEC-010 unchanged.
+* Created clean Phase 8 rollback commit `d6ca8a0` before Phase 9 changes.
+* Restored complete DEC-003 through DEC-011 records in `DECISIONS.md` from the approved governing documents; decisions remain unchanged.
+* Added DESIGN_SYSTEM token mapping, shadcn-style Button/Input/Alert primitives, Lucide icons, and responsive landing/auth/app-shell surfaces.
+* Added email/password signup/sign-in, confirmation callback, password recovery/update, logout, per-request Supabase SSR clients, cookie refresh proxy, verified-user DAL pattern, safe redirect/error handling, structured logs, and health response convention.
+* Recorded the first visual-review outcome and revised only Phase 9 surfaces: tightened the landing composition, replaced the generic benefits checklist with an editorial EasyMail attention brief, removed card styling from auth, aligned shell language to recap/attention concepts, and hid Next.js development chrome in review previews.
+* DEC-012 approved the revised Phase 9 visual direction while deferring final font and primary-color choices to the authenticated Recap UI.
+* Verified on 2026-09-11: format check, lint, typecheck, 11 unit tests, and a successful Next.js 16.3.4 production build using the live local Supabase environment.
+* Reset the local Supabase database from the committed migration and passed the permanent `verify:phase9` system check: signup/sign-in, automatic profile creation, recovery-email delivery, SSR session cookie, authenticated protected route, owner/cross-user/anonymous isolation, and service-role-only secret isolation.
+* Forced `RUN_RLS_TESTS=1 npm run test:rls`; all four cross-user RLS tests passed with no skips.
+* Exercised the rendered production server-action forms over HTTP: signup established a session, `/app` returned 200, logout invalidated access and restored the guard redirect, and re-login restored authenticated access.
+* Audited the source boundary and found no accidental Phase 10 implementation.
+
+## Phase 9 Exit Review
+
+* **Foundation works end-to-end — Pass.** Production build, public/auth/protected routing, live local auth, session cookies, password-recovery delivery, database migration, health handling, and app shell were exercised successfully.
+* **Authentication/ownership rules are verified — Pass.** Live signup/sign-in/session/logout behavior passed; forced RLS tests prove owner access, cross-user read/write isolation, anonymous isolation, and service-role-only secret isolation.
+* **Core development patterns are established — Pass.** Typed environment and Supabase clients, per-request SSR auth, DAL ownership checks, shared UI primitives, structured logging, safe error/redirect conventions, migrations, unit tests, RLS tests, and the permanent live verifier are present and working.
+* **Overall — Complete.** All Phase 9 technical exit criteria are satisfied and the product owner approved the final review on 2026-09-11. Phase 10 has not begun.
 
 ## Next Actions
 
-1. Product owner reviews Phase 8 exit-criteria check.
-2. On approval only: begin Phase 9 — Foundation Build.
-3. On a Docker-capable machine: `npx supabase start && npx supabase db reset && npm run test:rls`.
+1. Review the Phase 9 checkpoint commit.
+2. Hold until the product owner explicitly requests Phase 10. Preserve the provisional font/color decision for the authenticated Recap UI review.
 
 ## State Management Rules
 

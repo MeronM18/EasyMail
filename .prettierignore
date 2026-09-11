@@ -7,3 +7,5 @@ package-lock.json
 supabase/.temp
 supabase/.branches
 *.tsbuildinfo
+# Governing Markdown uses intentional hard line breaks and table formatting.
+*.md

@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* Phase 8: minimal config. Feature flags / redirects land in Phase 9+. */
+  // Keep framework chrome out of product visual reviews. Runtime and compile
+  // errors still surface in development when the route indicator is hidden.
+  devIndicators: false,
 };
 
 export default nextConfig;

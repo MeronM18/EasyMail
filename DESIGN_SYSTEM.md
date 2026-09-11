@@ -4,9 +4,12 @@
 > (Foundation Build) to gate all frontend implementation. Pairs with `UX.md`
 > (Phase 5 flows — **not** to be redesigned) and DEC-011.
 >
-> **Status:** Draft — awaiting product-owner approval.
-> **Rule:** Do not begin substantial frontend styling until this document is
-> approved. `UX.md` flows and information architecture are fixed; this document
+> **Status:** Foundation principles and the Phase 9 visual direction are approved
+> (DEC-012). Geist Sans and `#1F5FA9` remain **provisional** — not final brand
+> decisions. The next visual review is deferred to the authenticated product/Recap
+> UI (Phase 10), where final typography, color, density, and component language
+> can be judged in product context.
+> **Rule:** `UX.md` flows and information architecture are fixed; this document
 > governs *how* they look and feel, not *what* the screens do.
 
 ---
@@ -42,6 +45,17 @@ Guiding rules:
    "AI magic" theater. Trust is reinforced by clarity, not flourish.
 5. **One coherent identity.** Everything looks like it came from the same
    product, even when built from multiple component sources.
+
+### Phase 9 visual-review direction
+
+- Keep the restraint, hierarchy, and token discipline in this document.
+- EasyMail should be recognizable through its cross-inbox attention and recap
+  language, not through added effects or decorative complexity.
+- Prefer editorial, reading-oriented composition over generic SaaS benefit
+  checklists and dashboard-like widget arrangements.
+- Keep the primary color provisional until the visual identity is explicitly
+  approved. Do not treat the current blue as final brand selection.
+- Framework or development chrome must not appear in product review captures.
 
 ---
 
@@ -393,4 +407,9 @@ in a real user flow.
 ## Change log
 
 - 2026-09-10 — Initial draft created before Phase 9 per product-owner UI/design
-  constraints (DEC-011). Awaiting approval.
+  constraints (DEC-011).
+- 2026-09-10 — Approved for Phase 9. Geist Sans and `#1F5FA9` remain provisional
+  until the first real-UI visual review.
+- 2026-09-11 — Phase 9 visual direction approved (DEC-012). Geist Sans and
+  `#1F5FA9` stay provisional; next visual review deferred to the authenticated
+  Recap UI (Phase 10). No further Phase 9 landing polish.

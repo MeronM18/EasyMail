@@ -61,7 +61,7 @@ See `TESTING.md` for test details.
 
 ## Phase status
 
-Phase 8 — Project Setup is the coding entry point. Do not implement auth UI, OAuth, sync, classify, or recap until Phase 9+.
+Phase 9 — Foundation Build is complete and product-owner approved. Landing, EasyMail authentication, the protected shell, and shared infrastructure are verified. Gmail/Outlook OAuth, sync, classification, and recap remain intentionally unimplemented; Phase 10 has not begun.
 
 ## Secrets
 

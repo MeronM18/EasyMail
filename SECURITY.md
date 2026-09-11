@@ -24,8 +24,8 @@
 
 | Concern | Design |
 | --- | --- |
-| App login | Supabase Auth (magic link **or** email/password) |
-| Session | HTTP-only cookies via `@supabase/ssr` on Next.js |
+| App login | Supabase Auth email/password; confirmation and password recovery callbacks implemented in Phase 9 |
+| Session | Cookie-based SSR via `@supabase/ssr`; refreshed in Next.js Proxy and verified with `auth.getUser()` near protected data access |
 | Mailbox linking | Separate OAuth (Google / Microsoft); not used as sole app identity |
 | CSRF for mailbox OAuth | One-time `oauth_states` row bound to `user_id`, ≤10 min TTL, PKCE recommended |
 
@@ -38,6 +38,7 @@
 3. Message/classification operations require ownership of `messages.user_id`.  
 4. No shared mailboxes / delegated team access in MVP.  
 5. No admin backdoor UI in MVP. Human reading of user email content is **prohibited** except: user viewing their own data in-product; security incident investigation with documented need; legal requirement — aligned with Google **Limited Use**.
+6. Protected Server Components and the data-access layer verify the Supabase user; data functions derive ownership from that verified session instead of request-supplied user IDs.
 
 ---
 

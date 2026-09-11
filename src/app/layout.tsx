@@ -13,7 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EasyMail",
+  title: {
+    default: "EasyMail",
+    template: "%s · EasyMail",
+  },
   description: "Cross-inbox attention layer for Gmail and Outlook",
 };
 

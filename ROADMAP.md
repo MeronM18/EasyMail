@@ -4,17 +4,17 @@
 
 ## Current Milestone
 
-Phase 8 — Project Setup (complete; awaiting approval to start Phase 9)
+Phase 9 — Foundation Build (complete; Phase 10 not started)
 
 ## Now
 
-- Hold for product-owner approval
-- On approval: Phase 9 — Foundation Build
+- Preserve the approved Phase 9 checkpoint
+- Hold before Phase 10 until a separate explicit product-owner instruction
 
 ## Next
 
-- Foundation build (app shell, auth, DB/session patterns)
-- Core product + integrations per `MVP.md`
+- Phase 10 core product only after explicit authorization
+- Integrations per `MVP.md` in their proper phase
 
 ## Later
 
@@ -30,3 +30,4 @@ Testing, security review, beta, launch — after build phases.
 - Phase 6 — Technical Architecture (`ARCHITECTURE.md`, DEC-008): Next.js/Vercel, Supabase, Gmail+Graph read-only, AI Gateway classify, deterministic recap, Workflows/Cron — **unchanged after Mailopoly/MCP reviews**
 - Phase 7 — Data & Security Design (`SCHEMA.md`, `SECURITY.md`, DEC-009): user-owned RLS model, isolated encrypted tokens, retention, rate limits; DEC-010 competitive differentiation recorded
 - Phase 8 — Project Setup: Next.js/TS tooling, env schema, Vitest, Supabase migration + RLS test harness (`npm run test:rls`), CI, secrets hygiene; lint/typecheck/unit/build verified
+- Phase 9 — Foundation Build: app shell, routing, live Supabase auth/session, ownership-safe DAL and RLS, shared UI/error/logging/config patterns; format/lint/typecheck/unit/build/live-system/RLS verification passed and product-owner review approved

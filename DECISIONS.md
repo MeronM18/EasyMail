@@ -339,3 +339,29 @@ The authenticated product now communicates EasyMail's attention-layer value with
 - Future changes preserve the approved information hierarchy unless a new product decision is recorded.
 - Typography and primary brand color remain open decisions; individual components must not diverge from the current shared tokens.
 - Phase 11 provider integration remains separately gated.
+
+---
+
+### DEC-014 — Adopt EasyMail Design System v1, superseding provisional Phase 9/10 token values
+
+**Date:** 2026-09-12
+**Status:** Accepted
+
+### Context
+
+The product owner commissioned a full UI/UX design-system standardization pass (isolated in the `ui/design-system-v1` worktree/branch) covering typography, color tokens, spacing, radius, shadows, icons, component sourcing (shadcn/ui as foundation; Aceternity UI, Magic UI, and 21st.dev as restyled reference/composition only), and a complete landing/auth/onboarding/authenticated-app component inventory. The provisional tokens from DEC-011/012/013 (warm-stone neutral scale, 3-level text hierarchy, specific warning/success hex values) do not match the new specification's neutral palette (cool-zinc scale), 4-level foreground hierarchy, and updated semantic hex values.
+
+### Decision
+
+Adopt the new Design System v1 token set as the single source of truth, superseding the specific hex/naming choices from DEC-011/012/013 (their structural principles — content-first, restraint, neutral-first, border-first separation, no rainbow intent colors — carry forward unchanged). Primary brand color `#1F5FA9` is finalized (no longer provisional). Geist Sans + Geist Mono are finalized as the typographic system (no longer provisional). `DESIGN_SYSTEM.md` is rewritten to document v1 as authoritative. The onboarding, connect-inbox, and sync-state visual content from the new specification are adopted as reference material for the *existing* Settings connect flow and Recap partial-setup panel — not as a new gated onboarding route — preserving DEC-007's recap-first landing and `UX.md`'s "no tour walls" friction rule unchanged.
+
+### Why
+
+A single, explicit token replacement avoids two systems (the codebase's "v0" and the new brief's "v1") both being called authoritative at once. Locking primary color and typography now (rather than leaving them provisional through another phase) gives the design-system pass a stable target. Keeping the onboarding UX flow unchanged avoids an undiscussed product/routing change riding in on what was scoped as a visual pass.
+
+### Consequences
+
+- `globals.css`, `DESIGN_SYSTEM.md`, and every shadcn/custom component must be normalized to the new token values; no component may keep the old hex values.
+- Existing UX.md flows and DEC-007's recap-first landing are unchanged; no new onboarding route is introduced by this pass.
+- Component sourcing follows the new specification's shadcn-first strategy; Aceternity/Magic UI/21st.dev components are used as restyled reference only unless a specific block is later purchased/licensed and explicitly re-approved.
+- This work proceeds in the isolated `ui/design-system-v1` worktree/branch and does not merge until explicitly approved, per the product owner's standing instruction not to overwrite active Phase 11 backend work.

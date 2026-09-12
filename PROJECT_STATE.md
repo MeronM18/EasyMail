@@ -6,10 +6,18 @@
 
 * **Project initialized:** Yes
 * **Current phase:** Phase 11 — Integrations (Google OAuth/sync/classification vertical slice complete, verified end-to-end against a real account, and approved by the product owner; Microsoft Graph not started)
-* **Current objective:** Checkpoint the approved Google slice; do not begin Microsoft Graph or any UI redesign work without separate authorization.
-* **Next milestone:** After separate authorization, implement Microsoft OAuth + Graph sync (mirrors the Google slice), then incremental Cron sync + full Settings reconnect/disconnect UI.
-* **Design gate:** Resolved by DEC-013. The authenticated product visual direction is approved; Geist Sans and `#1F5FA9` remain explicitly provisional.
-* **Last updated:** 2026-09-11 (Phase 11 Google checkpoint commit)
+* **Current objective:** (this branch, `ui/design-system-v1`, isolated worktree) Implement EasyMail Design System v1 in controlled passes (A–G); do not merge until Phase 11 backend work on `main` is at a safe checkpoint. Microsoft Graph work continues separately on `main`, untouched by this branch.
+* **Next milestone:** Pass B — application shell (app-header, toast provider, breadcrumb/back-nav).
+* **Design gate:** Resolved by DEC-014 — EasyMail Design System v1 adopted, primary color and typography finalized (no longer provisional).
+* **Last updated:** 2026-09-12 (Design System v1, Pass A — tokens — complete on `ui/design-system-v1`)
+
+### Design System v1 progress (`ui/design-system-v1` branch only)
+
+* Inventory/sourcing/conflict deliverable completed and approved (route inventory, component inventory, shadcn/Aceternity/Magic UI/21st.dev sourcing map, live-verified paid/membership gating for named third-party blocks, accessibility/responsive plans). Full plan on file.
+* Two blocking decisions resolved by the product owner: (1) adopt the new brief's tokens as the authoritative v1, recorded as DEC-014, superseding DEC-011/012/013's specific hex values; (2) treat the brief's onboarding-wizard content as reference material for the *existing* Settings connect flow and Recap partial-setup panel, not a new gated route — preserves DEC-007 and `UX.md`'s "no tour walls" rule unchanged.
+* `DESIGN_SYSTEM.md` fully rewritten as v1 (final, not provisional): new neutral palette, 4-level foreground hierarchy, updated semantic colors, shadcn-first sourcing rules, explicit Aceternity/Magic UI/21st.dev usage rules, and the permanent consistency rule.
+* **Pass A (tokens/typography/primitives) — complete.** `globals.css` rewritten with v1 token values; existing utility class names (`text-text`, `bg-surface-muted`, etc.) kept as aliases onto the new hex values so every screen picks up the new palette immediately without a cascading rename, while canonical v1 names (`--foreground`, `--surface-subtle`, `--danger`, etc.) are defined for later passes to migrate onto. Verified: format, lint, typecheck, 43 unit tests, production build all pass; visually confirmed on landing, sign-in, and authenticated Recap (real data, real connected account) — no regressions, no broken styling.
+* Passes B–G (shell, Recap/Triage/detail, Settings/states, auth/onboarding, landing rebuild, responsive/accessibility) not yet started.
 
 ## Phase Progress
 

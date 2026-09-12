@@ -2,36 +2,53 @@
 @source "../**/*.{js,ts,jsx,tsx}";
 
 :root {
-  --background: #ffffff;
-  --surface: #fafaf9;
-  --surface-muted: #f4f4f5;
-  --border: #e7e5e4;
-  --border-strong: #d6d3d1;
-  --text: #1c1917;
-  --text-muted: #57534e;
-  --text-subtle: #8a857f;
+  /* EasyMail Design System v1 (DEC-014). Canonical names for new/updated
+     code going forward. */
+  --surface-subtle: #f7f7f8;
+  --surface-hover: #f2f3f5;
+  --foreground-secondary: #52525b;
+  --foreground-muted: #71717a;
+  --foreground-faint: #a1a1aa;
+  --primary-subtle: #edf4fb;
+  --danger: #b42318;
+  --danger-subtle: #fef3f2;
+  --success-subtle: #f0fdf4;
+  --warning-subtle: #fffbeb;
+
+  /* Existing utility-class names (`text-text`, `bg-surface-muted`, etc.) are
+     kept as aliases onto v1 values so every screen picks up the new palette
+     immediately; each area is migrated to the canonical v1 names above as
+     its own pass touches it (see DESIGN_SYSTEM.md §8, PROJECT_STATE.md). */
+  --background: #fafafa;
+  --surface: #ffffff;
+  --surface-muted: var(--surface-hover);
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --text: #18181b;
+  --text-muted: var(--foreground-secondary);
+  --text-subtle: var(--foreground-muted);
   --primary: #1f5fa9;
   --primary-foreground: #ffffff;
-  --primary-hover: #1a5292;
+  --primary-hover: #194f8e;
   --accent: #0e7c6b;
-  --error: #b42318;
-  --error-bg: #fef3f2;
+  --error: var(--danger);
+  --error-bg: var(--danger-subtle);
   --error-fg: #912018;
-  --warning: #b54708;
-  --warning-bg: #fffaeb;
+  --warning: #a16207;
+  --warning-bg: var(--warning-subtle);
   --warning-fg: #93370d;
-  --success: #067647;
-  --success-bg: #ecfdf3;
+  --success: #15803d;
+  --success-bg: var(--success-subtle);
   --success-fg: #05603a;
   --info: #175cd3;
   --info-bg: #eff8ff;
   --info-fg: #1849a9;
-  --radius-sm: 4px;
+  --radius-sm: 5px;
   --radius-md: 6px;
   --radius-lg: 8px;
-  --shadow-sm: 0 1px 2px rgb(28 25 23 / 6%);
-  --shadow-md: 0 4px 12px rgb(28 25 23 / 8%);
-  --shadow-lg: 0 12px 32px rgb(28 25 23 / 12%);
+  --shadow-sm: 0 1px 2px rgb(24 24 27 / 6%);
+  --shadow-md: 0 4px 12px rgb(24 24 27 / 8%);
+  --shadow-lg: 0 12px 32px rgb(24 24 27 / 12%);
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --motion-slow: 280ms;
@@ -39,6 +56,21 @@
 }
 
 @theme inline {
+  /* Canonical EasyMail Design System v1 names (DEC-014) — use these in new
+     and migrated code. */
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-hover: var(--surface-hover);
+  --color-foreground: var(--text);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-foreground-faint: var(--foreground-faint);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning-subtle: var(--warning-subtle);
+
+  /* Existing utility names, kept as aliases during migration. */
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
@@ -88,7 +120,7 @@ body {
     Arial,
     sans-serif;
   font-size: 14px;
-  line-height: 22px;
+  line-height: 21px;
   text-rendering: optimizeLegibility;
 }
 

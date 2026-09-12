@@ -1,12 +1,19 @@
 "use client";
 
 import { CircleCheck, RotateCcw } from "lucide-react";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   correctClassificationAction,
   type CorrectionState,
 } from "@/app/actions/classification";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { intentMeta, intents, type Intent } from "@/lib/intent";
 
 const initialCorrectionState: CorrectionState = {
@@ -25,25 +32,27 @@ export function CorrectionForm({
     correctClassificationAction,
     initialCorrectionState,
   );
+  const [intent, setIntent] = useState<Intent>(currentIntent);
 
   return (
     <form action={action} className="mt-4">
       <input name="messageId" type="hidden" value={messageId} />
-      <label className="text-[12px] font-medium text-text" htmlFor="intent">
+      <input name="intent" type="hidden" value={intent} />
+      <label className="text-[12px] font-medium text-text" htmlFor="intent-trigger">
         Move this message to
       </label>
-      <select
-        className="mt-2 h-10 w-full min-w-[220px] rounded-[var(--radius-md)] border border-border-strong bg-background px-3 text-[13px] text-text outline-none focus:border-primary"
-        defaultValue={currentIntent}
-        id="intent"
-        name="intent"
-      >
-        {intents.map((intent) => (
-          <option key={intent} value={intent}>
-            {intentMeta[intent].label}
-          </option>
-        ))}
-      </select>
+      <Select onValueChange={(value) => setIntent(value as Intent)} value={intent}>
+        <SelectTrigger className="mt-2 w-full" id="intent-trigger">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {intents.map((value) => (
+            <SelectItem key={value} value={value}>
+              {intentMeta[value].label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Button className="mt-3 w-full" disabled={pending} type="submit">
         <RotateCcw aria-hidden="true" className="size-3.5" />
         {pending ? "Updating recap…" : "Update recap"}

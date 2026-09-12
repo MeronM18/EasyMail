@@ -1,6 +1,6 @@
 import { Inbox } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import { FilterNav } from "@/components/app/filter-nav";
 import { MessageRow } from "@/components/app/message-row";
 import { getTriageData } from "@/lib/data/recap";
 import { intentMeta, isIntent, type Intent } from "@/lib/intent";
@@ -53,8 +53,8 @@ export default async function TriagePage({
       </div>
 
       <section
-        className="mt-7 border-y border-border py-4"
         aria-labelledby="intent-filter-heading"
+        className="mt-6 border-y border-border py-3"
       >
         <p
           className="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-subtle"
@@ -62,31 +62,21 @@ export default async function TriagePage({
         >
           Intent
         </p>
-        <nav
-          aria-label="Intent filters"
-          className="mt-2.5 flex flex-wrap gap-x-5 gap-y-2"
-        >
-          {filters.map((filter) => (
-            <Link
-              aria-current={intent === filter.value ? "page" : undefined}
-              className={`border-b-2 pb-1 text-[12px] font-medium ${
-                intent === filter.value
-                  ? "border-primary text-text"
-                  : "border-transparent text-text-muted hover:text-text"
-              }`}
-              href={href(filter.value, state.selectedAccount?.id)}
-              key={filter.value}
-            >
-              {filter.label}
-            </Link>
-          ))}
-        </nav>
+        <FilterNav
+          ariaLabel="Intent filters"
+          className="mt-2"
+          items={filters.map((filter) => ({
+            active: intent === filter.value,
+            href: href(filter.value, state.selectedAccount?.id),
+            label: filter.label,
+          }))}
+        />
       </section>
 
       {state.accounts.length > 1 ? (
         <section
-          className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center"
           aria-labelledby="inbox-filter-heading"
+          className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center"
         >
           <div className="flex shrink-0 items-center gap-2">
             <Inbox aria-hidden="true" className="size-3.5 text-text-subtle" />
@@ -97,44 +87,28 @@ export default async function TriagePage({
               Inbox
             </p>
           </div>
-          <nav
-            aria-label="Inbox filters"
-            className="flex flex-wrap gap-2 sm:border-l sm:border-border sm:pl-4"
-          >
-            <Link
-              aria-current={!state.selectedAccount ? "page" : undefined}
-              className={`rounded-[var(--radius-md)] border px-2.5 py-1 text-[11px] font-medium ${
-                !state.selectedAccount
-                  ? "border-border-strong bg-surface-muted text-text"
-                  : "border-border bg-background text-text-muted hover:border-border-strong"
-              }`}
-              href={href(intent)}
-            >
-              All inboxes
-            </Link>
-            {state.accounts.map((account) => (
-              <Link
-                aria-current={
-                  state.selectedAccount?.id === account.id ? "page" : undefined
-                }
-                className={`max-w-48 truncate rounded-[var(--radius-md)] border px-2.5 py-1 text-[11px] font-medium ${
-                  state.selectedAccount?.id === account.id
-                    ? "border-border-strong bg-surface-muted text-text"
-                    : "border-border bg-background text-text-muted hover:border-border-strong"
-                }`}
-                href={href(intent, account.id)}
-                key={account.id}
-              >
-                {account.label}
-              </Link>
-            ))}
-          </nav>
+          <FilterNav
+            ariaLabel="Inbox filters"
+            className="sm:border-l sm:border-border sm:pl-3"
+            items={[
+              {
+                active: !state.selectedAccount,
+                href: href(intent),
+                label: "All inboxes",
+              },
+              ...state.accounts.map((account) => ({
+                active: state.selectedAccount?.id === account.id,
+                href: href(intent, account.id),
+                label: account.label,
+              })),
+            ]}
+          />
         </section>
       ) : null}
 
       <section
-        className="mt-7 border-t border-border pt-5"
         aria-labelledby="results-heading"
+        className="mt-6 border-t border-border pt-5"
       >
         <div className="flex items-baseline justify-between gap-4">
           <div>
@@ -150,7 +124,7 @@ export default async function TriagePage({
             days
           </p>
         </div>
-        <div className="mt-3">
+        <div className="mt-2">
           {state.messages.length > 0 ? (
             state.messages.map((message) => (
               <MessageRow key={message.id} message={message} />

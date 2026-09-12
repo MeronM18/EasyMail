@@ -23,7 +23,7 @@ function formatReceivedAt(value: string) {
 export function MessageRow({ message }: { message: RecapMessage }) {
   return (
     <Link
-      className="group -mx-3 grid gap-2 border-t border-border px-3 py-3.5 first:border-t-0 hover:bg-surface sm:grid-cols-[minmax(0,1fr)_142px_18px] sm:items-center sm:gap-5"
+      className="group -mx-3 grid gap-1.5 rounded-[var(--radius-sm)] border-t border-border px-3 py-3 first:border-t-0 hover:bg-surface-muted sm:grid-cols-[minmax(0,1fr)_142px_18px] sm:items-center sm:gap-5 sm:py-2.5"
       href={`/app/messages/${message.id}`}
     >
       <div className="min-w-0">

@@ -1,10 +1,11 @@
 import { ArrowRight, CircleAlert, CircleCheck, Inbox } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FilterNav } from "@/components/app/filter-nav";
 import { IntentLabel } from "@/components/app/intent-label";
 import { MessageRow } from "@/components/app/message-row";
 import { getRecapData } from "@/lib/data/recap";
-import { parseRecapWindow, type RecapMessage } from "@/lib/recap";
+import { parseRecapWindow, type RecapMessage, type RecapWindow } from "@/lib/recap";
 
 export const metadata: Metadata = { title: "Recap" };
 
@@ -12,11 +13,15 @@ type PageProps = {
   searchParams: Promise<{ window?: string }>;
 };
 
-const windowLabels = {
+const windowLabels: Record<RecapWindow, string> = {
   since_last_visit: "Since last visit",
   today: "Today",
   "24h": "Last 24 hours",
-} as const;
+};
+
+function windowHref(value: RecapWindow) {
+  return value === "since_last_visit" ? "/app" : `/app?window=${value}`;
+}
 
 function MessageSection({
   id,
@@ -34,7 +39,7 @@ function MessageSection({
   href: string;
 }) {
   return (
-    <section className="border-t border-border pt-6" aria-labelledby={id}>
+    <section aria-labelledby={id} className="border-t border-border pt-6">
       <div className="flex items-start justify-between gap-6">
         <div>
           <h2 className="text-base font-semibold leading-6 text-text" id={id}>
@@ -50,7 +55,7 @@ function MessageSection({
           View triage
         </Link>
       </div>
-      <div className="mt-3">
+      <div className="mt-2">
         {messages.length > 0 ? (
           messages.map((message) => <MessageRow key={message.id} message={message} />)
         ) : (
@@ -90,23 +95,15 @@ export default async function AppPage({ searchParams }: PageProps) {
             </p>
           </div>
 
-          <div className="mt-6 flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-            <nav aria-label="Recap window" className="flex flex-wrap gap-x-5 gap-y-2">
-              {Object.entries(windowLabels).map(([value, label]) => (
-                <Link
-                  aria-current={window === value ? "page" : undefined}
-                  className={`border-b-2 pb-1 text-[12px] font-medium ${
-                    window === value
-                      ? "border-primary text-text"
-                      : "border-transparent text-text-muted hover:text-text"
-                  }`}
-                  href={value === "since_last_visit" ? "/app" : `/app?window=${value}`}
-                  key={value}
-                >
-                  {label}
-                </Link>
-              ))}
-            </nav>
+          <div className="mt-6 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <FilterNav
+              ariaLabel="Recap window"
+              items={(Object.keys(windowLabels) as RecapWindow[]).map((value) => ({
+                active: window === value,
+                href: windowHref(value),
+                label: windowLabels[value],
+              }))}
+            />
             {state.accounts.length > 0 ? (
               <p className="text-[11px] text-text-subtle">
                 {state.groups.needsNow.length} need you · {state.groups.matters.length}
@@ -120,15 +117,21 @@ export default async function AppPage({ searchParams }: PageProps) {
             <section className="border-b border-border py-10 text-center">
               <Inbox aria-hidden="true" className="mx-auto size-6 text-text-subtle" />
               <h2 className="mt-4 text-base font-semibold text-text">
-                Nothing to recap yet
+                No inboxes connected yet
               </h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-[22px] text-text-muted">
-                Your account is ready. Inbox connection arrives in the integration phase;
-                Phase 10 demo data can be loaded locally for product review.
+                Connect an inbox in Settings to start building your recap.
               </p>
+              <Link
+                className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-primary hover:text-primary-hover"
+                href="/app/settings"
+              >
+                Connect an inbox
+                <ArrowRight aria-hidden="true" className="size-3.5" />
+              </Link>
             </section>
           ) : (
-            <div className="space-y-7 pt-6">
+            <div className="space-y-6 pt-5">
               <MessageSection
                 description="Replies, tasks, deadlines, and decisions waiting on you."
                 emptyMessage="Nothing needs you right now."
@@ -146,8 +149,8 @@ export default async function AppPage({ searchParams }: PageProps) {
                 title="Matters"
               />
               <section
-                className="border-t border-border pt-6"
                 aria-labelledby="lower-attention-heading"
+                className="border-t border-border pt-6"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -172,9 +175,9 @@ export default async function AppPage({ searchParams }: PageProps) {
                     <ArrowRight aria-hidden="true" className="size-3.5" />
                   </Link>
                 </div>
-                <div className="mt-4 grid border-y border-border sm:grid-cols-2 sm:divide-x sm:divide-border">
+                <div className="mt-3 grid border-y border-border sm:grid-cols-2 sm:divide-x sm:divide-border">
                   <Link
-                    className="flex items-center justify-between gap-4 py-3 pr-4 hover:bg-surface sm:pl-3"
+                    className="flex items-center justify-between gap-4 py-2.5 pr-4 hover:bg-surface-muted sm:pl-3"
                     href="/app/triage?intent=can_ignore"
                   >
                     <IntentLabel full intent="can_ignore" />
@@ -183,7 +186,7 @@ export default async function AppPage({ searchParams }: PageProps) {
                     </span>
                   </Link>
                   <Link
-                    className="flex items-center justify-between gap-4 border-t border-border py-3 hover:bg-surface sm:border-t-0 sm:px-3"
+                    className="flex items-center justify-between gap-4 border-t border-border py-2.5 hover:bg-surface-muted sm:border-t-0 sm:px-3"
                     href="/app/triage?intent=cleanup_candidate"
                   >
                     <IntentLabel full intent="cleanup_candidate" />
@@ -197,14 +200,14 @@ export default async function AppPage({ searchParams }: PageProps) {
           )}
         </div>
 
-        <aside className="border-t border-border pt-6 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-1">
+        <aside className="border-t border-border pt-6 lg:border-t-0 lg:border-l lg:pt-1 lg:pl-7">
           <h2 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-text-subtle">
             Inbox setup
           </h2>
           <p className="mt-1.5 text-[12px] leading-5 text-text-muted">
             {state.setup.completed} of {state.setup.total} target inboxes represented
           </p>
-          <div className="mt-4 space-y-3.5">
+          <div className="mt-4 space-y-3">
             {state.accounts.map((account) => (
               <div key={account.id}>
                 <div className="flex items-center gap-2">
@@ -218,7 +221,7 @@ export default async function AppPage({ searchParams }: PageProps) {
                     {account.label}
                   </p>
                 </div>
-                <p className="ml-3.5 truncate text-[11px] capitalize text-text-subtle">
+                <p className="ml-3.5 truncate text-[11px] text-text-subtle capitalize">
                   {account.provider}
                   {account.isDemo ? " · Demo data" : ""}
                 </p>
@@ -239,7 +242,7 @@ export default async function AppPage({ searchParams }: PageProps) {
           ) : null}
           {state.pendingCount > 0 ? (
             <p className="mt-4 border-t border-border pt-4 text-[11px] leading-[18px] text-text-muted">
-              {state.pendingCount} message{state.pendingCount === 1 ? " is" : "s are"}
+              {state.pendingCount} message{state.pendingCount === 1 ? " is" : "s are"}{" "}
               waiting for classification and excluded from this recap.
             </p>
           ) : null}

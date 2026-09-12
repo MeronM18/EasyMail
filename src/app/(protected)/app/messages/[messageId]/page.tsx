@@ -31,8 +31,8 @@ export default async function MessageDetailPage({
         Back to recap
       </Link>
 
-      <article className="mt-6">
-        <header className="border-b border-border pb-6">
+      <article className="mt-5">
+        <header className="border-b border-border pb-5">
           <div className="flex flex-wrap items-center gap-2.5">
             <IntentLabel full intent={message.intent} />
             {message.isUserOverride ? (
@@ -65,7 +65,7 @@ export default async function MessageDetailPage({
           </div>
         </header>
 
-        <div className="grid gap-8 pt-7 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-10">
+        <div className="grid gap-8 pt-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-10">
           <section aria-labelledby="message-heading">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-subtle">
               <Mail aria-hidden="true" className="size-3.5" />
@@ -115,7 +115,7 @@ export default async function MessageDetailPage({
             </section>
 
             <section
-              className="mt-7 border-t border-border pt-6"
+              className="mt-6 border-t border-border pt-5"
               aria-labelledby="correction-heading"
             >
               <div className="flex items-center gap-2">
@@ -128,7 +128,11 @@ export default async function MessageDetailPage({
                 If EasyMail read this incorrectly, move it. The message stays unchanged in
                 your mailbox.
               </p>
-              <CorrectionForm currentIntent={message.intent} messageId={message.id} />
+              <CorrectionForm
+                currentIntent={message.intent}
+                key={message.intent}
+                messageId={message.id}
+              />
             </section>
           </aside>
         </div>

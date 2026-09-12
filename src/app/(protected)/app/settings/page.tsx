@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { signOutAction } from "@/app/actions/auth";
+import { AccountRow } from "@/components/app/account-row";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth/session";
 import { getMailAccountsForSettings } from "@/lib/data/recap";
@@ -9,13 +11,6 @@ export const metadata: Metadata = { title: "Settings" };
 
 type PageProps = {
   searchParams: Promise<{ error?: string; connected?: string }>;
-};
-
-const statusLabel: Record<string, string> = {
-  active: "Connected",
-  needs_reconnect: "Needs reconnect",
-  sync_error: "Sync error",
-  disconnected: "Disconnected",
 };
 
 export default async function SettingsPage({ searchParams }: PageProps) {
@@ -30,33 +25,27 @@ export default async function SettingsPage({ searchParams }: PageProps) {
         <h1 className="text-2xl font-semibold leading-8 tracking-[-0.02em] text-text">
           Settings
         </h1>
-        <p className="mt-3 text-sm leading-[22px] text-text-muted">
+        <p className="mt-2 text-sm leading-[22px] text-text-muted">
           Manage your EasyMail account and connected inboxes.
         </p>
       </div>
 
       {errorMessage ? (
-        <p
-          className="mt-6 max-w-xl rounded-[var(--radius-md)] border border-border bg-surface-muted px-4 py-3 text-sm text-text"
-          role="alert"
-        >
+        <Alert className="mt-6 max-w-xl" tone="error">
           {errorMessage}
-        </p>
+        </Alert>
       ) : null}
       {query.connected === "google" ? (
-        <p
-          className="mt-6 max-w-xl rounded-[var(--radius-md)] border border-border bg-surface-muted px-4 py-3 text-sm text-text"
-          role="status"
-        >
+        <Alert className="mt-6 max-w-xl" tone="success">
           Google account connected and synced.
-        </p>
+        </Alert>
       ) : null}
 
       <section
-        className="mt-10 border-t border-border pt-8"
         aria-labelledby="inboxes-heading"
+        className="mt-10 border-t border-border pt-7"
       >
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2
               className="text-base font-semibold leading-6 text-text"
@@ -69,7 +58,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
               your behalf.
             </p>
           </div>
-          <Button asChild size="sm">
+          <Button asChild className="shrink-0" size="sm">
             <a href="/api/oauth/google/start">Connect Google account</a>
           </Button>
         </div>
@@ -77,41 +66,26 @@ export default async function SettingsPage({ searchParams }: PageProps) {
         {accounts.length === 0 ? (
           <p className="mt-6 text-sm text-text-muted">No inboxes connected yet.</p>
         ) : (
-          <ul className="mt-6 divide-y divide-border border-y border-border">
+          <ul className="mt-5 divide-y divide-border border-y border-border">
             {accounts.map((account) => (
-              <li
-                className="flex items-center justify-between gap-4 py-3"
-                key={account.id}
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-text">
-                    {account.label}
-                  </p>
-                  <p className="truncate text-[12px] capitalize text-text-subtle">
-                    {account.provider} · {account.emailAddress}
-                  </p>
-                </div>
-                <span className="shrink-0 text-[12px] text-text-muted">
-                  {statusLabel[account.status] ?? account.status}
-                </span>
-              </li>
+              <AccountRow account={account} key={account.id} />
             ))}
           </ul>
         )}
       </section>
 
       <section
-        className="mt-10 border-t border-border pt-8"
         aria-labelledby="account-heading"
+        className="mt-9 border-t border-border pt-7"
       >
         <h2 className="text-base font-semibold leading-6 text-text" id="account-heading">
           EasyMail account
         </h2>
-        <dl className="mt-5 grid max-w-xl grid-cols-[120px_1fr] gap-x-6 gap-y-3 text-sm leading-[22px]">
+        <dl className="mt-4 grid max-w-xl grid-cols-[120px_1fr] gap-x-6 gap-y-2.5 text-sm leading-[22px]">
           <dt className="text-text-subtle">Email</dt>
           <dd className="truncate text-text">{user.email ?? "Unavailable"}</dd>
         </dl>
-        <form action={signOutAction} className="mt-7">
+        <form action={signOutAction} className="mt-6">
           <Button type="submit" variant="outline">
             Sign out
           </Button>

@@ -1,5 +1,8 @@
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { decryptToken, encryptToken } from "@/lib/crypto/token-cipher";
+
+const TEST_TOKEN_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; // test-only
 
 /**
  * Cross-user RLS isolation tests (SCHEMA.md / SECURITY.md).
@@ -92,11 +95,15 @@ async function seedMailData(
     throw accountError ?? new Error("Failed to insert mail_account");
   }
 
+  // Store real AES-256-GCM ciphertext (Postgres bytea hex literal), not a raw
+  // Buffer — supabase-js JSON-serializes a bare Buffer as
+  // `{"type":"Buffer","data":[...]}` text instead of the intended bytes, so
+  // every write to a bytea column must go through this "\x"+hex encoding.
   const { error: secretError } = await admin.from("mail_account_secrets").insert({
     mail_account_id: account.id,
     user_id: userId,
-    refresh_token_ciphertext: Buffer.from("fake-refresh-token"),
-    access_token_ciphertext: Buffer.from("fake-access-token"),
+    refresh_token_ciphertext: encryptToken("fake-refresh-token", TEST_TOKEN_KEY),
+    access_token_ciphertext: encryptToken("fake-access-token", TEST_TOKEN_KEY),
     token_payload_version: 1,
   });
   if (secretError) {
@@ -377,5 +384,45 @@ describeRls("RLS cross-user isolation", () => {
       .update({ effective_intent: "can_ignore" })
       .eq("message_id", userA.messageId);
     expect(error).not.toBeNull();
+  });
+
+  it("authenticated role cannot read or write oauth_states", async ({ skip }) => {
+    if (!supabaseReachable) skip();
+
+    const { data: selectData, error: selectError } = await userA.client
+      .from("oauth_states")
+      .select("state");
+    if (selectError) {
+      expect(selectError.message.toLowerCase()).toMatch(
+        /permission|policy|denied|not accept|schema cache|rls/i,
+      );
+    } else {
+      expect(selectData ?? []).toHaveLength(0);
+    }
+
+    const { error: insertError } = await userA.client.from("oauth_states").insert({
+      state: `hijack-${userA.user.id}`,
+      user_id: userA.user.id,
+      provider: "google",
+      expires_at: new Date(Date.now() + 60_000).toISOString(),
+    });
+    expect(insertError).not.toBeNull();
+  });
+
+  it("round-trips an encrypted refresh token through mail_account_secrets", async ({
+    skip,
+  }) => {
+    if (!supabaseReachable) skip();
+
+    const { data } = await admin
+      .from("mail_account_secrets")
+      .select("refresh_token_ciphertext")
+      .eq("mail_account_id", userA.accountId)
+      .single();
+
+    expect(data?.refresh_token_ciphertext).toBeTruthy();
+    expect(decryptToken(data!.refresh_token_ciphertext as string, TEST_TOKEN_KEY)).toBe(
+      "fake-refresh-token",
+    );
   });
 });

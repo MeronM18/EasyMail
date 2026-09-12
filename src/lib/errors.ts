@@ -4,7 +4,9 @@ export type AppErrorCode =
   | "INVALID_INPUT"
   | "NOT_FOUND"
   | "DATA_ACCESS_FAILED"
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  | "INTEGRATION_NOT_CONFIGURED"
+  | "INTEGRATION_ERROR";
 
 const statuses: Record<AppErrorCode, number> = {
   AUTH_REQUIRED: 401,
@@ -13,6 +15,10 @@ const statuses: Record<AppErrorCode, number> = {
   NOT_FOUND: 404,
   DATA_ACCESS_FAILED: 500,
   INTERNAL_ERROR: 500,
+  // Server is missing required provider credentials for this integration.
+  INTEGRATION_NOT_CONFIGURED: 503,
+  // A configured provider (Google, Microsoft, AI Gateway) returned a failure.
+  INTEGRATION_ERROR: 502,
 };
 
 export class AppError extends Error {

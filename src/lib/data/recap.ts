@@ -13,6 +13,20 @@ import {
 } from "@/lib/recap";
 import { createClient } from "@/lib/supabase/server";
 
+// PostgREST/Kong reject an overly long query string ("URI too long") once an
+// `.in(...)` filter's id list gets large enough — a real mailbox easily has
+// hundreds of messages in-window, well past that point. Chunking keeps each
+// request's URL short regardless of how many messages a user has.
+const IN_FILTER_CHUNK_SIZE = 100;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
 export type MailAccountSummary = {
   id: string;
   provider: "google" | "microsoft";
@@ -121,26 +135,29 @@ async function loadClassifiedMessages({
     return { messages: [] as RecapMessage[], pendingCount: 0 };
   }
 
-  const classificationsResult = await supabase
-    .from("message_classifications")
-    .select(
-      "message_id,model_intent,effective_intent,reason,action_signal,is_user_override",
-    )
-    .eq("user_id", userId)
-    .in(
-      "message_id",
+  const classificationChunks = await Promise.all(
+    chunk(
       messageRows.map(({ id }) => id),
-    );
+      IN_FILTER_CHUNK_SIZE,
+    ).map((ids) =>
+      supabase
+        .from("message_classifications")
+        .select(
+          "message_id,model_intent,effective_intent,reason,action_signal,is_user_override",
+        )
+        .eq("user_id", userId)
+        .in("message_id", ids),
+    ),
+  );
 
-  if (classificationsResult.error) {
+  if (classificationChunks.some((result) => result.error)) {
     throw new AppError("DATA_ACCESS_FAILED", "We could not load your recap.");
   }
 
   const classifications = new Map(
-    (classificationsResult.data ?? []).map((classification) => [
-      classification.message_id,
-      classification,
-    ]),
+    classificationChunks
+      .flatMap((result) => result.data ?? [])
+      .map((classification) => [classification.message_id, classification]),
   );
   const accountIds = [...new Set(messageRows.map((message) => message.mail_account_id))];
   const accountsResult = await supabase
@@ -197,6 +214,12 @@ async function loadClassifiedMessages({
         message.classification_status === "pending" || !classifications.has(message.id),
     ).length,
   };
+}
+
+export async function getMailAccountsForSettings(): Promise<MailAccountSummary[]> {
+  const user = await requireUser();
+  const { accounts } = await loadAccountsAndProfile(user.id);
+  return accounts;
 }
 
 export async function getRecapData(window: RecapWindow): Promise<RecapData> {

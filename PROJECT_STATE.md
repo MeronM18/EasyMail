@@ -5,11 +5,11 @@
 ## Build Status
 
 * **Project initialized:** Yes
-* **Current phase:** Phase 10 — Core Product Build (complete; checkpoint committed)
-* **Current objective:** Begin Phase 11 — Integrations under separate authorization.
-* **Next milestone:** Scope and authorize Phase 11 provider OAuth/sync work; do not begin it implicitly.
+* **Current phase:** Phase 11 — Integrations (Google OAuth/sync/classification vertical slice complete, verified end-to-end against a real account, and approved by the product owner; Microsoft Graph not started)
+* **Current objective:** Checkpoint the approved Google slice; do not begin Microsoft Graph or any UI redesign work without separate authorization.
+* **Next milestone:** After separate authorization, implement Microsoft OAuth + Graph sync (mirrors the Google slice), then incremental Cron sync + full Settings reconnect/disconnect UI.
 * **Design gate:** Resolved by DEC-013. The authenticated product visual direction is approved; Geist Sans and `#1F5FA9` remain explicitly provisional.
-* **Last updated:** 2026-09-11 (Phase 10 checkpoint commit)
+* **Last updated:** 2026-09-11 (Phase 11 Google checkpoint commit)
 
 ## Phase Progress
 
@@ -44,7 +44,17 @@
 * Local Supabase migration, live auth/session verification, and forced cross-user RLS isolation tests passed on 2026-09-11.
 * Product owner manually verified the configured localhost UI/auth flow and approved the final Phase 9 review on 2026-09-11.
 * Phase 10 checkpoint slice implemented: deterministic Recap from stored classifications, five-intent triage, message detail, audited user correction, partial setup, and empty/loading/error/pending states over the approved user-owned schema. Local-only demo fixtures support review without provider credentials.
-* Phase 11 integration functionality remains absent: no provider OAuth routes, Gmail/Graph API wiring, background sync, production classifier, drafting, or mailbox mutation was introduced.
+* Phase 11 Google slice implemented (uncommitted): PKCE-protected `/api/oauth/google/start` + `/api/oauth/google/callback` (scope `gmail.readonly` only), AES-256-GCM token encryption/storage in `mail_account_secrets`, inline initial sync (14-day/300-message window) via the Gmail REST API, real AI Gateway classification (`generateObject`, default model `anthropic/claude-haiku-4.5`, never overwrites `is_user_override`), and a retention purge job (7-day body scrub, 14-day message delete, oauth_state expiry) exposed at a `CRON_SECRET`-gated `/api/internal/purge`. Settings gained a minimal connect-account entry point and connected-inbox list. All new Google/Microsoft/AI/Cron credentials stay optional in `env.ts`; missing config fails clearly at the integration boundary (`src/lib/integrations/config.ts`) rather than blocking build/lint/typecheck/tests — verified with a completely empty process environment. Microsoft Graph, incremental Cron sync, and full reconnect/disconnect UI are not yet implemented.
+* Real end-to-end Google verification on 2026-09-11 against the product owner's actual `meronmatti123@gmail.com`, using their own Google Cloud OAuth client and Vercel AI Gateway key. OAuth consent, PKCE, token exchange/encryption, and reconnect all confirmed working against live services. Found and fixed three real bugs surfaced only by real data/volume (all re-verified: format, lint, typecheck, 43 unit tests, 10 RLS tests, production build all green after each fix):
+  1. `gmailFetch` only retried on HTTP 429; Gmail's actual per-user rate limit response is HTTP 403 with body `reason: "rateLimitExceeded"` — now recognized and retried with backoff (`src/lib/integrations/google/gmail-client.ts`).
+  2. A sync retry re-fetched (and re-burned Gmail quota on) messages already stored, since `ignoreDuplicates` only skips the DB write, not the API call — sync now skips already-stored `provider_message_id`s before calling Gmail at all (`src/lib/integrations/google/gmail-sync.ts`); a single message's persistent fetch failure also no longer aborts classification of the rest of the batch.
+  3. `loadClassifiedMessages`'s `message_classifications` query passed the full message-id list in one `.in()` filter — errors with "URI too long" past roughly 150 real messages. Now batched into chunks of 100, queried in parallel (`src/lib/data/recap.ts`) — this is a Phase 10 data-layer bug Phase 10's own demo fixtures (a handful of messages) never exercised.
+* Result (initial pass): 300 real Gmail messages synced and stored correctly; Recap/Triage render correctly against real data (0 classified — correctly excluded and counted as pending). AI classification was blocked at this point: every attempt failed with Vercel AI Gateway's own error, "Free tier requests on this model are rate-limited. Upgrade to paid credits" — confirmed non-transient (0 successes across 90+ seconds of continuous retries).
+* Product owner added $15 paid credit to the Vercel AI Gateway account on 2026-09-11/12. Re-investigated rather than swapping models: confirmed via the Gateway's own `/v1/credits` endpoint that the configured `AI_GATEWAY_API_KEY` correctly resolves to the funded account/team (balance "15", totalUsed "0") and that `anthropic/claude-haiku-4.5` is a normal paid model with no free-tier restriction — a direct isolated `generateObject` call against it succeeded immediately. No configuration bug existed; the account genuinely had no credit during the first pass.
+* Found and fixed one more real bug this pass: the model's `reason` field occasionally exceeds the 160-character schema limit (provider structured-output enforces the intent enum but not free-text length at the token level) — `generateObject` throws `NoObjectGeneratedError` and the classification was discarded. `classify.ts` now catches that specific error, truncates `reason`/`actionSignal` to 160 chars, and re-validates against the *same, unchanged* zod schema before giving up — a resilience fix, not a schema or architecture change. Verified via a temporary, deleted-after-use diagnostic route: an 8-message batch went from 4/8 → 5/8 → 10/10 succeeding after the fix.
+* Classified all 300 real messages via the real `classifyPendingMessages` code path: 300/300 succeeded, 0 failures. Real intent distribution: needs_reply 9, needs_action 22, matters 39, can_ignore 17, cleanup_candidate 213. Recap and Triage now render real classified messages with correct reasoning text, correct account attribution, and correct timestamps. Manually corrected one message's classification through the real UI, then re-ran classification on it — `is_user_override`/`effective_intent` were confirmed untouched (`model_intent` still showed the original model suggestion), proving the override-protection constraint holds against a live model.
+* Full suite re-verified after every fix in this pass: format, lint, typecheck, 43 unit tests, 10 RLS tests, production build all green. The temporary diagnostic route used to run controlled small batches was deleted after use — not part of the product's route surface.
+* Remaining before Microsoft: disconnect UI still not implemented (deferred to a later step, per plan); incremental Cron sync and full reconnect/disconnect UX are the next Google-side work, likely folded into the Microsoft step per the original order.
 
 ## Completed Decisions
 
@@ -74,7 +84,7 @@
 
 ## Blocking Decisions
 
-None. Phase 10 is complete and committed. Phase 11 requires separate authorization before work begins.
+None. The Google OAuth/sync/classification vertical slice is complete, verified end-to-end against a real account, and approved by the product owner. Microsoft Graph work requires separate authorization before it begins.
 
 ## Major Risks
 
@@ -90,7 +100,7 @@ None. Phase 10 is complete and committed. Phase 11 requires separate authorizati
 
 * Gmail Pub/Sub push sync, LLM narrative recaps, payments, push digests, native apps
 * EasyMail-as-MCP server (optional H1 from `MCP_EVALUATION.md`)
-* Gmail/Outlook OAuth flows, provider sync/API wiring, and production classification → Phase 11
+* Outlook/Microsoft Graph OAuth flow, sync, and classification wiring; incremental Cron-driven sync for both providers; full Settings reconnect/disconnect UI
 
 ## Recent Progress
 
@@ -117,6 +127,17 @@ None. Phase 10 is complete and committed. Phase 11 requires separate authorizati
 * Final Phase 10 suite passes: format, lint, typecheck, 17 unit tests, 8 forced local RLS tests, production build, authenticated interaction checks, and diff inspection.
 * Product owner gave final Phase 10 approval on 2026-09-11. Closeout diff/status review found no accidental files, secrets, debug artifacts, or Phase 11 scope; `.env.local`, `node_modules`, `.next`, and local Supabase data remain untracked; `git diff --check` passed. Created the Phase 10 checkpoint commit.
 
+## Phase 11 Google Checkpoint
+
+* **Google OAuth — Complete.** PKCE-protected `/api/oauth/google/start` + `/api/oauth/google/callback`, single-use `oauth_states` CSRF row, `gmail.readonly` scope only. Verified with a real Google Cloud OAuth client and a real Google account, including the Testing-mode unverified-app consent screen and a full reconnect (re-authorization).
+* **Token storage — Complete.** AES-256-GCM encryption (`src/lib/crypto/token-cipher.ts`), stored in `mail_account_secrets` as a Postgres bytea hex literal. RLS-verified deny-all for `authenticated`/`anon`; an RLS test round-trips a real encrypted token through a live Postgres row.
+* **Gmail sync — Complete.** Real inline sync via the Gmail REST API (14-day/300-message window). Verified against a real inbox: 300 real messages fetched and stored correctly (subjects, senders, bodies, retention deadlines). Two real bugs found via real data volume and fixed: Gmail's 403-coded rate-limit response wasn't recognized as retryable, and a sync retry re-fetched (re-burning quota on) messages already stored — both fixed and re-verified.
+* **Production AI classification — Complete.** Real Vercel AI Gateway calls (`generateObject`, model `anthropic/claude-haiku-4.5`) against the product owner's own paid-credit Gateway account. Verified against all 300 real synced messages: 300/300 classified, 0 failures, sensible real-world intent distribution. A schema near-miss (model's `reason` field occasionally exceeding 160 chars — a known structured-output limitation, not a schema/architecture issue) is repaired via truncation + re-validation against the unchanged schema rather than discarding the classification.
+* **Real end-to-end verification — Complete.** Full loop verified with real data: OAuth → encrypted token storage → Gmail sync → AI classification → stored classifications → Recap/Triage rendering → user correction. A manual correction was confirmed to survive a live reclassification pass (`is_user_override`/`effective_intent` untouched, `model_intent` unchanged) — the override-protection constraint holds against a real model, not just in tests.
+* **Boundary check:** No compose/draft/send/archive/delete/unsubscribe, no Microsoft/Graph code, no destructive automation. Read-only `gmail.readonly` scope only.
+* **Microsoft — Not started.**
+* **Status:** Approved by the product owner. Retention purge (7-day body scrub, 14-day message delete, oauth_state expiry) is implemented and manually verified but not yet wired to a schedule — Cron wiring is planned alongside Microsoft's incremental sync. Disconnect UI and full reconnect/disconnect UX are not yet implemented.
+
 ## Phase 10 Visual Checkpoint
 
 * **Implemented:** Authenticated Recap, window selection, five-intent triage/account filtering, message detail, deterministic stored-classification grouping, atomic correction/override auditing, partial-account and pending-classification notices, and empty/loading/error states.
@@ -142,9 +163,9 @@ None. Phase 10 is complete and committed. Phase 11 requires separate authorizati
 
 ## Next Actions
 
-1. Scope Phase 11 — Integrations (Gmail/Outlook OAuth, provider sync, production classifier) per `BUILD_FROM_ZERO.md`.
-2. Obtain explicit authorization before beginning Phase 11 implementation.
-3. Re-read the Phase 11 section of `BUILD_FROM_ZERO.md` before starting that work.
+1. Create the Phase 11 Google checkpoint commit (`feat: checkpoint phase 11 google integration`) — closeout in progress.
+2. Obtain explicit authorization before beginning Microsoft Graph implementation or any UI redesign work.
+3. Re-read the Phase 11 section of `BUILD_FROM_ZERO.md` before starting Microsoft work.
 
 ## State Management Rules
 

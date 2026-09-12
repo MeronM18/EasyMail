@@ -60,3 +60,9 @@ yarn-error.log*
 *.swp
 *.swo
 .turbo
+
+# Claude Code — local-only session config, never shared/versioned.
+# CLAUDE.md and any other intentionally-versioned project-level Claude
+# documentation/config stay tracked; only these local files are ignored.
+.claude/settings.local.json
+.claude/launch.json

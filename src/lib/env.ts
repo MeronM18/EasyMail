@@ -25,6 +25,9 @@ const serverEnvSchema = publicEnvSchema.extend({
   MICROSOFT_TENANT_ID: z.string().min(1).optional(),
   AI_GATEWAY_API_KEY: z.string().min(1).optional(),
   AI_CLASSIFY_MODEL: z.string().min(1).optional(),
+  // Bearer secret for internal job endpoints (purge, and Cron-triggered sync
+  // once that lands); matches Vercel Cron's documented CRON_SECRET convention.
+  CRON_SECRET: z.string().min(1).optional(),
 });
 
 export type PublicEnv = z.infer<typeof publicEnvSchema>;
@@ -60,6 +63,7 @@ export function getServerEnv(
     MICROSOFT_TENANT_ID: source.MICROSOFT_TENANT_ID,
     AI_GATEWAY_API_KEY: source.AI_GATEWAY_API_KEY,
     AI_CLASSIFY_MODEL: source.AI_CLASSIFY_MODEL,
+    CRON_SECRET: source.CRON_SECRET,
   });
 }
 

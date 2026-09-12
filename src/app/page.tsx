@@ -1,6 +1,11 @@
+import { FeatureShowcase } from "@/components/marketing/feature-showcase";
 import { Hero } from "@/components/marketing/hero";
+import { HowItWorks } from "@/components/marketing/how-it-works";
+import { IntegrationsSection } from "@/components/marketing/integrations-section";
 import { MarketingNavbar } from "@/components/marketing/navbar";
+import { ProblemSection } from "@/components/marketing/problem-section";
 import { ProductPreview } from "@/components/marketing/product-preview";
+import { TrustSection } from "@/components/marketing/trust-section";
 
 export default function HomePage() {
   return (
@@ -8,6 +13,11 @@ export default function HomePage() {
       <MarketingNavbar />
       <Hero />
       <ProductPreview />
+      <ProblemSection />
+      <HowItWorks />
+      <FeatureShowcase />
+      <IntegrationsSection />
+      <TrustSection />
     </main>
   );
 }

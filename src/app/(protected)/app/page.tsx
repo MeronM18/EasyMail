@@ -55,7 +55,7 @@ function MessageSection({
           messages.map((message) => <MessageRow key={message.id} message={message} />)
         ) : (
           <div className="flex items-center gap-2 py-5 text-[13px] text-text-muted">
-            <CircleCheck aria-hidden="true" className="size-4 text-accent" />
+            <CircleCheck aria-hidden="true" className="size-4 text-brand-accent" />
             {emptyMessage}
           </div>
         )}

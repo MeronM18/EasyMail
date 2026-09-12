@@ -1,4 +1,5 @@
 @import "tailwindcss" source(none);
+@import "tw-animate-css";
 @source "../**/*.{js,ts,jsx,tsx}";
 
 :root {
@@ -82,7 +83,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-hover: var(--primary-hover);
-  --color-accent: var(--accent);
+  --color-brand-accent: var(--accent);
   --color-error: var(--error);
   --color-error-bg: var(--error-bg);
   --color-error-fg: var(--error-fg);
@@ -95,6 +96,30 @@
   --color-info: var(--info);
   --color-info-bg: var(--info-bg);
   --color-info-fg: var(--info-fg);
+
+  /* shadcn's generated components (Sheet, Dialog, Select, etc.) reference
+     these standard slot names regardless of a project's own token set.
+     Mapped onto EasyMail v1 tokens so every future `npx shadcn add` works
+     correctly without per-component overrides. `accent`/`accent-foreground`
+     are shadcn's generic hover-state slot (used internally by menus, command
+     items, etc.) — deliberately mapped to a neutral hover shade, not the
+     brand teal (renamed `--color-brand-accent` above, DESIGN_SYSTEM.md "one
+     highlight moment max" — it must never become a generic hover color). */
+  --color-ring: var(--primary);
+  --color-input: var(--border-strong);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text);
+  --color-secondary: var(--surface-hover);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--surface-muted);
+  --color-muted-foreground: var(--text-subtle);
+  --color-accent: var(--surface-hover);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: #ffffff;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

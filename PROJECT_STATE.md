@@ -103,6 +103,7 @@ None. The Google OAuth/sync/classification vertical slice is complete, verified 
 * **Token storage:** high-value secrets — AES-256-GCM + service-role-only table required in build.
 * **Deep link fragility:** use Graph `webLink` / best-effort Gmail URLs + UX fallbacks.
 * **Mailopoly competitive overlap:** same JTBD; hold stay-native / intent / classify-only wedge (DEC-010).
+* **Auth session race (observed, unconfirmed):** during UI dev-server testing on `ui/design-system-v1` (2026-09-11/12), a one-time `AppError` ("We could not load your workspace.") was thrown from `loadAccountsAndProfile` (`src/lib/data/recap.ts:97`) immediately after a sign-out → sign-in cycle; the very next request and all subsequent `/app`, `/app/triage`, `/app/settings` requests succeeded normally for the rest of the session. Replaying the exact same `profiles`/`mail_accounts` queries directly against the local PostgREST API for the affected user succeeded cleanly, ruling out a schema/RLS/data cause. `recap.ts` and the auth/session code have zero diff on `ui/design-system-v1` (UI-only branch), so this is pre-existing Phase 10/11 behavior, not introduced by the Design System work — likely a stale-cookie/prefetch timing edge around sign-out. Not reproduced on demand; needs a dedicated investigation on `main` before it can be called fixed.
 
 ## Deferred / Later
 

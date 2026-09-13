@@ -51,6 +51,14 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           Google account connected and synced.
         </p>
       ) : null}
+      {query.connected === "microsoft" ? (
+        <p
+          className="mt-6 max-w-xl rounded-[var(--radius-md)] border border-border bg-surface-muted px-4 py-3 text-sm text-text"
+          role="status"
+        >
+          Outlook account connected and synced.
+        </p>
+      ) : null}
 
       <section
         className="mt-10 border-t border-border pt-8"
@@ -65,13 +73,18 @@ export default async function SettingsPage({ searchParams }: PageProps) {
               Connected inboxes
             </h2>
             <p className="mt-1 text-[13px] leading-5 text-text-muted">
-              Gmail access is read-only — EasyMail never sends, archives, or deletes on
-              your behalf.
+              Gmail and Outlook access are read-only — EasyMail never sends, archives, or
+              deletes on your behalf.
             </p>
           </div>
-          <Button asChild size="sm">
-            <a href="/api/oauth/google/start">Connect Google account</a>
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            <Button asChild size="sm">
+              <a href="/api/oauth/google/start">Connect Google account</a>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <a href="/api/oauth/microsoft/start">Connect Outlook account</a>
+            </Button>
+          </div>
         </div>
 
         {accounts.length === 0 ? (

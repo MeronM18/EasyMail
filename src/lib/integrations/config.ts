@@ -48,6 +48,30 @@ export function getGoogleOAuthConfig(): GoogleOAuthConfig {
   };
 }
 
+export type MicrosoftOAuthConfig = {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  tenantId: string;
+};
+
+export function getMicrosoftOAuthConfig(): MicrosoftOAuthConfig {
+  const env = safeServerEnv();
+  const { MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, MICROSOFT_REDIRECT_URI } = env;
+  if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET || !MICROSOFT_REDIRECT_URI) {
+    throw new AppError(
+      "INTEGRATION_NOT_CONFIGURED",
+      "Microsoft mailbox integration is not configured on this server.",
+    );
+  }
+  return {
+    clientId: MICROSOFT_CLIENT_ID,
+    clientSecret: MICROSOFT_CLIENT_SECRET,
+    redirectUri: MICROSOFT_REDIRECT_URI,
+    tenantId: env.MICROSOFT_TENANT_ID ?? "common",
+  };
+}
+
 /** The 32-byte, base64-encoded key used to encrypt/decrypt provider tokens at rest. */
 export function getTokenEncryptionKey(): string {
   return safeServerEnv().TOKEN_ENCRYPTION_KEY;

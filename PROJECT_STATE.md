@@ -5,11 +5,11 @@
 ## Build Status
 
 * **Project initialized:** Yes
-* **Current phase:** Phase 11 — Integrations (Google OAuth/sync/classification vertical slice complete, verified end-to-end against a real account, and approved by the product owner; Microsoft Graph not started)
-* **Current objective:** Checkpoint the approved Google slice; do not begin Microsoft Graph or any UI redesign work without separate authorization.
-* **Next milestone:** After separate authorization, implement Microsoft OAuth + Graph sync (mirrors the Google slice), then incremental Cron sync + full Settings reconnect/disconnect UI.
+* **Current phase:** Phase 11 — Integrations (Google OAuth/sync/classification vertical slice complete, verified end-to-end against a real account, and approved by the product owner; Microsoft Graph implemented on `feature/phase-11-outlook`, not yet verified against a real account and not yet merged)
+* **Current objective:** Verify the Microsoft/Outlook slice end-to-end against a real Microsoft account once an Azure App Registration exists, then bring it back to `main` for product-owner review.
+* **Next milestone:** After Microsoft is verified and approved, add incremental Cron sync + full Settings reconnect/disconnect UI for both providers.
 * **Design gate:** Resolved by DEC-013. The authenticated product visual direction is approved; Geist Sans and `#1F5FA9` remain explicitly provisional.
-* **Last updated:** 2026-09-11 (Phase 11 Google checkpoint commit)
+* **Last updated:** 2026-09-12 (Microsoft/Outlook implementation on `feature/phase-11-outlook`, product-owner authorized in-session)
 
 ## Phase Progress
 
@@ -84,7 +84,7 @@
 
 ## Blocking Decisions
 
-None. The Google OAuth/sync/classification vertical slice is complete, verified end-to-end against a real account, and approved by the product owner. Microsoft Graph work requires separate authorization before it begins.
+None on `main`. The Google OAuth/sync/classification vertical slice is complete, verified end-to-end against a real account, and approved by the product owner. Microsoft Graph implementation was explicitly authorized by the product owner in-session on 2026-09-12 and proceeded on `feature/phase-11-outlook`; it is blocked from merging to `main` until it is verified against a real Microsoft account and approved by the product owner (see Phase 11 Microsoft/Outlook Checkpoint above).
 
 ## Major Risks
 
@@ -138,6 +138,19 @@ None. The Google OAuth/sync/classification vertical slice is complete, verified 
 * **Microsoft — Not started.**
 * **Status:** Approved by the product owner. Retention purge (7-day body scrub, 14-day message delete, oauth_state expiry) is implemented and manually verified but not yet wired to a schedule — Cron wiring is planned alongside Microsoft's incremental sync. Disconnect UI and full reconnect/disconnect UX are not yet implemented.
 
+## Phase 11 Microsoft/Outlook Checkpoint (branch: `feature/phase-11-outlook`, uncommitted product-owner review)
+
+* **Authorization:** Product owner explicitly authorized starting Microsoft Graph work in-session on 2026-09-12, superseding the prior "Blocking Decisions" gate for this branch only. `main` is untouched.
+* **Microsoft OAuth — Implemented, not yet live-verified.** PKCE-protected `/api/oauth/microsoft/start` + `/api/oauth/microsoft/callback`, reusing the same single-use `oauth_states` CSRF row (already provider-generic). Scopes: `offline_access User.Read Mail.Read` only — no `Mail.ReadWrite`, no `Mail.Send`, no application (app-only) permissions. `src/lib/integrations/microsoft/oauth.ts`.
+* **Token storage — Implemented, reuses existing infrastructure unchanged.** Same AES-256-GCM cipher (`src/lib/crypto/token-cipher.ts`), same `mail_account_secrets` table and RLS deny-all policy as Google (`mail_accounts.provider` already allowed `'microsoft'` in the Phase 7 schema — no migration needed).
+* **Outlook sync — Implemented, not yet live-verified.** `src/lib/integrations/microsoft/graph-sync.ts` mirrors `gmail-sync.ts`: same 14-day/300-message bounded window, same idempotent `(mail_account_id, provider_message_id)` upsert, same already-stored skip-before-fetch guard, same `sync_runs` overlap protection. Uses Graph's `Prefer: outlook.body-content-type="text"` header so message bodies arrive as plain text server-side (no HTML-stripping code needed, unlike Gmail's MIME parsing). Retry/backoff on Graph's real throttling signal (HTTP 429 with `Retry-After`, and 5xx).
+* **Classification — Reused unchanged.** `classifyPendingMessages` is keyed by `mail_account_id`/`user_id`, not provider — no Microsoft-specific classification code was needed or written.
+* **Boundary check:** No compose/draft/send/move/delete/unsubscribe, no mailbox-mutation Graph calls, no destructive automation. Read-only `Mail.Read` scope only.
+* **Settings UI:** Added a second "Connect Outlook account" button and a `connected=microsoft` status banner beside the existing Google ones. No layout/design change beyond that.
+* **Verification so far:** format, lint, typecheck, unit tests (57, up from 43 — added Microsoft OAuth-config and Graph-message-normalization coverage), forced local RLS tests (10, unchanged — no policy changes were needed), and a production build all pass, including with the process environment cleared (Microsoft/Google config remains optional and fails clearly only at the point of use, matching the existing `src/lib/integrations/config.ts` boundary).
+* **Not yet done:** No real Azure App Registration exists yet, so there has been no live OAuth consent, token exchange, or real-inbox sync/classification run against an actual Microsoft/Outlook account — this is the same "real end-to-end verification" step the Google slice needed before it could be approved. Disconnect UI, incremental Cron sync, and `revokeMicrosoftToken` (implemented as a documented no-op — Microsoft has no public per-refresh-token revoke endpoint) remain unused pending that later reconnect/disconnect UX work, matching Google's current state.
+* **Status:** Implemented and self-verified; not yet reviewed or approved by the product owner; not yet merged to `main`.
+
 ## Phase 10 Visual Checkpoint
 
 * **Implemented:** Authenticated Recap, window selection, five-intent triage/account filtering, message detail, deterministic stored-classification grouping, atomic correction/override auditing, partial-account and pending-classification notices, and empty/loading/error states.
@@ -163,9 +176,10 @@ None. The Google OAuth/sync/classification vertical slice is complete, verified 
 
 ## Next Actions
 
-1. Create the Phase 11 Google checkpoint commit (`feat: checkpoint phase 11 google integration`) — closeout in progress.
-2. Obtain explicit authorization before beginning Microsoft Graph implementation or any UI redesign work.
-3. Re-read the Phase 11 section of `BUILD_FROM_ZERO.md` before starting Microsoft work.
+1. Register a real Azure App Registration (redirect URI, client secret, `Mail.Read`/`offline_access`/`User.Read` delegated permissions) so the Microsoft slice on `feature/phase-11-outlook` can be exercised against a live Outlook/Microsoft 365 account.
+2. Run the same real end-to-end verification the Google slice went through (live OAuth consent, token exchange, inbox sync, classification) against that real account, fixing any real-data bugs surfaced the way Gmail's were.
+3. Bring the reviewed, verified branch to the product owner for approval before merging to `main`.
+4. After Microsoft is approved: incremental Cron sync and full Settings reconnect/disconnect UI for both providers (unchanged from the prior plan).
 
 ## State Management Rules
 

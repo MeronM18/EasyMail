@@ -5,6 +5,7 @@ import {
   getAiClassifyConfig,
   getCronSecret,
   getGoogleOAuthConfig,
+  getMicrosoftOAuthConfig,
   getTokenEncryptionKey,
 } from "@/lib/integrations/config";
 
@@ -60,6 +61,45 @@ describe("integration config boundary", () => {
       clientSecret: "secret",
       redirectUri: "http://localhost:3000/api/oauth/google/callback",
     });
+  });
+
+  it("throws when Microsoft credentials are only partially configured", () => {
+    // exampleServerEnv already includes dummy Microsoft values — clear the
+    // other two to isolate "partially set".
+    stubBaseEnv();
+    vi.stubEnv("MICROSOFT_CLIENT_ID", "id");
+    vi.stubEnv("MICROSOFT_CLIENT_SECRET", undefined);
+    vi.stubEnv("MICROSOFT_REDIRECT_URI", undefined);
+    expect(() => getMicrosoftOAuthConfig()).toThrow(AppError);
+  });
+
+  it("returns Microsoft config once fully configured", () => {
+    stubBaseEnv();
+    vi.stubEnv("MICROSOFT_CLIENT_ID", "id");
+    vi.stubEnv("MICROSOFT_CLIENT_SECRET", "secret");
+    vi.stubEnv(
+      "MICROSOFT_REDIRECT_URI",
+      "http://localhost:3000/api/oauth/microsoft/callback",
+    );
+    vi.stubEnv("MICROSOFT_TENANT_ID", "common");
+    expect(getMicrosoftOAuthConfig()).toEqual({
+      clientId: "id",
+      clientSecret: "secret",
+      redirectUri: "http://localhost:3000/api/oauth/microsoft/callback",
+      tenantId: "common",
+    });
+  });
+
+  it("defaults the Microsoft tenant to 'common' when unset", () => {
+    stubBaseEnv();
+    vi.stubEnv("MICROSOFT_CLIENT_ID", "id");
+    vi.stubEnv("MICROSOFT_CLIENT_SECRET", "secret");
+    vi.stubEnv(
+      "MICROSOFT_REDIRECT_URI",
+      "http://localhost:3000/api/oauth/microsoft/callback",
+    );
+    vi.stubEnv("MICROSOFT_TENANT_ID", undefined);
+    expect(getMicrosoftOAuthConfig().tenantId).toBe("common");
   });
 
   it("throws when AI Gateway is not configured", () => {

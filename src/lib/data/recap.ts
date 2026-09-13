@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth/session";
 import { AppError } from "@/lib/errors";
 import { isIntent, type Intent } from "@/lib/intent";
 import {
+  countPendingMessages,
   getSetupProgress,
   getWindowStart,
   groupRecapMessages,
@@ -209,10 +210,7 @@ async function loadClassifiedMessages({
 
   return {
     messages,
-    pendingCount: messageRows.filter(
-      (message) =>
-        message.classification_status === "pending" || !classifications.has(message.id),
-    ).length,
+    pendingCount: countPendingMessages(messageRows),
   };
 }
 

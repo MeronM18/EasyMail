@@ -1,22 +1,19 @@
 import "server-only";
 import { AppError } from "@/lib/errors";
 import { classifyPendingMessages } from "@/lib/integrations/classify";
+import { listMicrosoftMessages } from "@/lib/integrations/microsoft/graph-client";
 import {
-  getGmailMessage,
-  listGmailMessageIds,
-} from "@/lib/integrations/google/gmail-client";
+  extractGraphBodyText,
+  graphWebLink,
+  parseGraphFromAddress,
+  parseGraphReceivedAt,
+} from "@/lib/integrations/microsoft/message-parser";
+import { refreshMicrosoftAccessToken } from "@/lib/integrations/microsoft/oauth";
 import {
-  buildGmailWebLink,
-  extractBodyText,
-  getHeader,
-  parseFromHeader,
-} from "@/lib/integrations/google/message-parser";
-import { refreshGoogleAccessToken } from "@/lib/integrations/google/oauth";
-import {
-  loadGoogleAccountForSync,
+  loadMicrosoftAccountForSync,
   markMailAccountStatus,
   markMailAccountSynced,
-  storeGoogleAccessToken,
+  storeMicrosoftAccessToken,
   type MailAccountForSync,
 } from "@/lib/integrations/mail-accounts";
 import { ProviderReauthRequiredError } from "@/lib/integrations/oauth-errors";
@@ -44,8 +41,8 @@ async function ensureFreshAccessToken(account: MailAccountForSync): Promise<stri
     return account.accessToken;
   }
 
-  const refreshed = await refreshGoogleAccessToken(account.refreshToken);
-  await storeGoogleAccessToken(
+  const refreshed = await refreshMicrosoftAccessToken(account.refreshToken);
+  await storeMicrosoftAccessToken(
     account.id,
     account.userId,
     refreshed.accessToken,
@@ -54,7 +51,7 @@ async function ensureFreshAccessToken(account: MailAccountForSync): Promise<stri
   return refreshed.accessToken;
 }
 
-export type GmailSyncResult = {
+export type GraphSyncResult = {
   fetched: number;
   stored: number;
   classified: number;
@@ -62,17 +59,18 @@ export type GmailSyncResult = {
 };
 
 /**
- * Initial (rolling-window) sync for one Gmail account: list recent message
- * ids, fetch + store each one, then classify everything left pending.
- * Idempotent — re-running is safe: `messages` upserts skip existing rows
- * (`ignoreDuplicates`) via the `(mail_account_id, provider_message_id)`
- * unique constraint, and `sync_runs`'s partial unique index blocks overlap.
+ * Initial (rolling-window) sync for one Outlook account: list recent
+ * messages, store each one, then classify everything left pending. Mirrors
+ * `syncGmailAccount` — same 14-day/300-message bound, same idempotent upsert
+ * via the `(mail_account_id, provider_message_id)` unique constraint, same
+ * `sync_runs` overlap guard, and the same shared `classifyPendingMessages`
+ * pipeline (provider-agnostic, keyed by `mail_account_id`).
  */
-export async function syncGmailAccount(
+export async function syncMicrosoftAccount(
   mailAccountId: string,
   trigger: SyncTrigger,
-): Promise<GmailSyncResult> {
-  const account = await loadGoogleAccountForSync(mailAccountId);
+): Promise<GraphSyncResult> {
+  const account = await loadMicrosoftAccountForSync(mailAccountId);
   const syncRunId = await startSyncRun({
     userId: account.userId,
     mailAccountId: account.id,
@@ -83,70 +81,59 @@ export async function syncGmailAccount(
     const accessToken = await ensureFreshAccessToken(account);
     const supabase = createServiceClient();
 
-    const afterUnixSeconds = Math.floor(
-      (Date.now() - SYNC_WINDOW_DAYS * 24 * 60 * 60 * 1000) / 1000,
-    );
+    const sinceIso = new Date(
+      Date.now() - SYNC_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString();
 
-    const messageIds: string[] = [];
-    let pageToken: string | undefined;
+    const messages: Awaited<ReturnType<typeof listMicrosoftMessages>>["messages"] = [];
+    let nextLink: string | undefined;
     do {
-      const page = await listGmailMessageIds(accessToken, {
-        afterUnixSeconds,
-        pageToken,
-      });
-      messageIds.push(...page.messageIds);
-      pageToken = page.nextPageToken ?? undefined;
-    } while (pageToken && messageIds.length < MAX_MESSAGES_PER_SYNC);
+      const page = await listMicrosoftMessages(accessToken, { sinceIso, nextLink });
+      messages.push(...page.messages);
+      nextLink = page.nextLink ?? undefined;
+    } while (nextLink && messages.length < MAX_MESSAGES_PER_SYNC);
 
-    const boundedIds = messageIds.slice(0, MAX_MESSAGES_PER_SYNC);
+    const bounded = messages.slice(0, MAX_MESSAGES_PER_SYNC);
 
-    // Skip messages already stored from a prior sync attempt entirely — the
-    // upsert's `ignoreDuplicates` only skips the DB write, not the Gmail API
-    // call, so without this a retried/repeated sync re-burns Gmail's
-    // per-user-per-minute quota re-fetching messages it already has,
-    // compounding a rate-limit failure on every retry instead of recovering.
+    // Skip messages already stored from a prior sync attempt entirely — same
+    // rationale as the Gmail sync: the upsert's `ignoreDuplicates` only
+    // skips the DB write, not the Graph API traffic already spent listing.
     const { data: existingRows } = await supabase
       .from("messages")
       .select("provider_message_id")
       .eq("mail_account_id", account.id)
-      .in("provider_message_id", boundedIds);
+      .in(
+        "provider_message_id",
+        bounded.map((m) => m.id),
+      );
     const alreadyStored = new Set(
       (existingRows ?? []).map((row) => row.provider_message_id),
     );
-    const newIds = boundedIds.filter((id) => !alreadyStored.has(id));
+    const newMessages = bounded.filter((m) => !alreadyStored.has(m.id));
 
     let stored = 0;
     let fetchFailed = 0;
 
-    // Each message is fetched/stored independently: a single message that
-    // keeps failing after gmailFetch's own retries (e.g. a sustained
-    // per-minute quota exhaustion) must not abort the whole sync and strand
-    // the messages already stored without ever being classified.
-    for (const messageId of newIds) {
+    for (const message of newMessages) {
       try {
-        const full = await getGmailMessage(accessToken, messageId);
-        const headers = full.payload?.headers;
-        const from = parseFromHeader(getHeader(headers, "From"));
-        const subject = getHeader(headers, "Subject") ?? "";
-        const receivedAt = full.internalDate
-          ? new Date(Number(full.internalDate)).toISOString()
-          : new Date().toISOString();
-        const bodyText = extractBodyText(full);
+        const from = parseGraphFromAddress(message);
+        const receivedAt = parseGraphReceivedAt(message);
+        const bodyText = extractGraphBodyText(message);
 
         const { error: upsertError } = await supabase.from("messages").upsert(
           {
             user_id: account.userId,
             mail_account_id: account.id,
-            provider_message_id: full.id,
-            provider_thread_id: full.threadId ?? null,
+            provider_message_id: message.id,
+            provider_thread_id: message.conversationId ?? null,
             received_at: receivedAt,
             from_address: from.address,
             from_name: from.name,
-            subject,
-            snippet: full.snippet ?? "",
+            subject: message.subject ?? "",
+            snippet: message.bodyPreview ?? "",
             body_text: bodyText,
             body_retained_until: bodyText ? bodyRetentionDeadline().toISOString() : null,
-            web_link: buildGmailWebLink(full.id),
+            web_link: graphWebLink(message),
             classification_status: "pending",
             raw_internal_date: receivedAt,
           },
@@ -154,7 +141,7 @@ export async function syncGmailAccount(
         );
 
         if (upsertError) {
-          logger.error("sync.gmail.message_store_failed", {
+          logger.error("sync.microsoft.message_store_failed", {
             mailAccountId: account.id,
             error: upsertError.message,
           });
@@ -164,16 +151,11 @@ export async function syncGmailAccount(
         stored += 1;
       } catch (messageError) {
         fetchFailed += 1;
-        logger.error("sync.gmail.message_fetch_failed", {
+        logger.error("sync.microsoft.message_store_failed", {
           mailAccountId: account.id,
           error: messageError instanceof Error ? messageError.message : "unknown error",
         });
       }
-
-      // Light pacing against Gmail's per-user-per-minute quota — gmailFetch's
-      // own retry/backoff is the real defense, this just reduces how often
-      // a large sync trips it in the first place.
-      await new Promise((resolve) => setTimeout(resolve, 150));
     }
 
     const { classified, failed: classifyFailed } = await classifyPendingMessages(
@@ -192,7 +174,7 @@ export async function syncGmailAccount(
       outcome.statusMessage,
     );
     await finishSyncRun(syncRunId, outcome.finishStatus, {
-      seen: boundedIds.length,
+      seen: bounded.length,
       alreadyStored: alreadyStored.size,
       stored,
       fetchFailed,
@@ -200,14 +182,14 @@ export async function syncGmailAccount(
       classifyFailed,
     });
 
-    return { fetched: boundedIds.length, stored, classified, classifyFailed };
+    return { fetched: bounded.length, stored, classified, classifyFailed };
   } catch (error) {
     // An expired/revoked refresh token is permanent — no retry will fix it,
     // and the account needs the user to reconnect (Phase 12, G4). Anything
     // else (network blips, provider 5xx) is a transient sync failure.
     const reauthRequired = error instanceof ProviderReauthRequiredError;
     const errorMessage = error instanceof Error ? error.message : "unknown error";
-    logger.error("sync.gmail.failed", {
+    logger.error("sync.microsoft.failed", {
       mailAccountId: account.id,
       reauthRequired,
       error: errorMessage,
@@ -229,6 +211,6 @@ export async function syncGmailAccount(
 
     throw error instanceof AppError
       ? error
-      : new AppError("INTEGRATION_ERROR", "Gmail sync failed.");
+      : new AppError("INTEGRATION_ERROR", "Outlook sync failed.");
   }
 }

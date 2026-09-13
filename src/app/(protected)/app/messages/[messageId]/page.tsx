@@ -5,6 +5,7 @@ import { CorrectionForm } from "@/components/app/correction-form";
 import { IntentLabel } from "@/components/app/intent-label";
 import { getMessageDetail } from "@/lib/data/recap";
 import { intentMeta } from "@/lib/intent";
+import { parseMessageBodySegments } from "@/lib/message-body";
 
 export const metadata: Metadata = { title: "Message detail" };
 
@@ -65,14 +66,31 @@ export default async function MessageDetailPage({
           </div>
         </header>
 
-        <div className="grid gap-8 pt-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-10">
-          <section aria-labelledby="message-heading">
+        <div className="grid gap-8 pt-7 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-10">
+          <section aria-labelledby="message-heading" className="min-w-0">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-subtle">
               <Mail aria-hidden="true" className="size-3.5" />
               <h2 id="message-heading">Message preview</h2>
             </div>
-            <div className="mt-5 max-w-3xl whitespace-pre-wrap text-[14px] leading-7 text-text-muted">
-              {message.bodyText || message.snippet || "No preview is available."}
+            <div className="mt-5 max-w-3xl whitespace-pre-wrap text-[14px] leading-7 text-text-muted [overflow-wrap:anywhere]">
+              {message.bodyText || message.snippet
+                ? parseMessageBodySegments(message.bodyText || message.snippet).map(
+                    (segment, index) =>
+                      segment.type === "link" ? (
+                        <a
+                          className="font-medium text-primary underline underline-offset-2 hover:text-primary-hover"
+                          href={segment.href}
+                          key={index}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                        >
+                          {segment.label}
+                        </a>
+                      ) : (
+                        segment.value
+                      ),
+                  )
+                : "No preview is available."}
             </div>
             {message.webLink ? (
               <a
@@ -91,7 +109,7 @@ export default async function MessageDetailPage({
             )}
           </section>
 
-          <aside className="border-t border-border pt-6 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+          <aside className="min-w-0 border-t border-border pt-6 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
             <section aria-labelledby="why-heading">
               <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-subtle">
                 EasyMail read
@@ -99,7 +117,7 @@ export default async function MessageDetailPage({
               <h2 className="mt-2 text-sm font-semibold text-text" id="why-heading">
                 Why EasyMail placed it here
               </h2>
-              <p className="mt-2 text-[12px] leading-5 text-text-muted">
+              <p className="mt-2 text-[12px] leading-5 text-text-muted [overflow-wrap:anywhere]">
                 {message.reason || intentMeta[message.intent].description}
               </p>
               {message.actionSignal ? (
@@ -107,7 +125,7 @@ export default async function MessageDetailPage({
                   <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-text-subtle">
                     Attention signal
                   </p>
-                  <p className="mt-1 text-[12px] font-medium leading-5 text-text">
+                  <p className="mt-1 text-[12px] font-medium leading-5 text-text [overflow-wrap:anywhere]">
                     {message.actionSignal}
                   </p>
                 </div>

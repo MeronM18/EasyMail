@@ -3,6 +3,7 @@ import { decryptToken, encryptToken } from "@/lib/crypto/token-cipher";
 import { AppError } from "@/lib/errors";
 import { getTokenEncryptionKey } from "@/lib/integrations/config";
 import type { GoogleTokenGrant } from "@/lib/integrations/google/oauth";
+import type { MicrosoftTokenGrant } from "@/lib/integrations/microsoft/oauth";
 import { createServiceClient } from "@/lib/supabase/admin";
 
 /**
@@ -48,6 +49,72 @@ export async function upsertGoogleMailAccount({
       {
         user_id: userId,
         provider: "google",
+        provider_account_id: emailAddress,
+        email_address: emailAddress,
+        scopes_granted: grant.scope.split(" ").filter(Boolean),
+        status: "active",
+        status_message: null,
+      },
+      { onConflict: "user_id,provider,provider_account_id" },
+    )
+    .select("id")
+    .single();
+
+  if (accountError || !account) {
+    throw new AppError("INTEGRATION_ERROR", "Could not save the connected mailbox.");
+  }
+
+  const { error: secretError } = await supabase.from("mail_account_secrets").upsert({
+    mail_account_id: account.id,
+    user_id: userId,
+    refresh_token_ciphertext: encryptToken(grant.refreshToken, key),
+    access_token_ciphertext: encryptToken(grant.accessToken, key),
+    access_token_expires_at: grant.expiresAt.toISOString(),
+    token_payload_version: 1,
+  });
+
+  if (secretError) {
+    throw new AppError(
+      "INTEGRATION_ERROR",
+      "Could not securely store the mailbox connection.",
+    );
+  }
+
+  return { id: account.id };
+}
+
+export type ConnectMicrosoftAccountInput = {
+  userId: string;
+  emailAddress: string;
+  grant: MicrosoftTokenGrant;
+};
+
+/** Upserts the mail account row and encrypts/stores its OAuth secrets. */
+export async function upsertMicrosoftMailAccount({
+  userId,
+  emailAddress,
+  grant,
+}: ConnectMicrosoftAccountInput): Promise<{ id: string }> {
+  if (!grant.refreshToken) {
+    // buildMicrosoftAuthorizationUrl always sets prompt=consent, and
+    // offline_access is always requested, so Microsoft should always return
+    // one; treat a missing refresh token as a hard failure rather than
+    // silently storing an account nobody can sync.
+    throw new AppError(
+      "INTEGRATION_ERROR",
+      "Microsoft did not grant offline access. Try connecting again.",
+    );
+  }
+
+  const supabase = createServiceClient();
+  const key = getTokenEncryptionKey();
+
+  const { data: account, error: accountError } = await supabase
+    .from("mail_accounts")
+    .upsert(
+      {
+        user_id: userId,
+        provider: "microsoft",
         provider_account_id: emailAddress,
         email_address: emailAddress,
         scopes_granted: grant.scope.split(" ").filter(Boolean),
@@ -133,7 +200,71 @@ export async function loadGoogleAccountForSync(
   };
 }
 
+/** Loads a Microsoft account's decrypted credentials for a sync/classify job. */
+export async function loadMicrosoftAccountForSync(
+  mailAccountId: string,
+): Promise<MailAccountForSync> {
+  const supabase = createServiceClient();
+  const key = getTokenEncryptionKey();
+
+  const { data: account, error: accountError } = await supabase
+    .from("mail_accounts")
+    .select("id,user_id,email_address,provider")
+    .eq("id", mailAccountId)
+    .eq("provider", "microsoft")
+    .maybeSingle();
+
+  if (accountError || !account) {
+    throw new AppError("NOT_FOUND", "Mailbox connection not found.");
+  }
+
+  const { data: secret, error: secretError } = await supabase
+    .from("mail_account_secrets")
+    .select("refresh_token_ciphertext,access_token_ciphertext,access_token_expires_at")
+    .eq("mail_account_id", mailAccountId)
+    .maybeSingle();
+
+  if (secretError || !secret?.refresh_token_ciphertext) {
+    throw new AppError("INTEGRATION_ERROR", "Mailbox credentials are missing.");
+  }
+
+  return {
+    id: account.id,
+    userId: account.user_id,
+    emailAddress: account.email_address,
+    refreshToken: decryptToken(secret.refresh_token_ciphertext, key),
+    accessToken: secret.access_token_ciphertext
+      ? decryptToken(secret.access_token_ciphertext, key)
+      : null,
+    accessTokenExpiresAt: secret.access_token_expires_at
+      ? new Date(secret.access_token_expires_at)
+      : null,
+  };
+}
+
 export async function storeGoogleAccessToken(
+  mailAccountId: string,
+  userId: string,
+  accessToken: string,
+  expiresAt: Date,
+): Promise<void> {
+  const supabase = createServiceClient();
+  const key = getTokenEncryptionKey();
+  const { error } = await supabase
+    .from("mail_account_secrets")
+    .update({
+      access_token_ciphertext: encryptToken(accessToken, key),
+      access_token_expires_at: expiresAt.toISOString(),
+    })
+    .eq("mail_account_id", mailAccountId)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw new AppError("INTEGRATION_ERROR", "Could not refresh the mailbox connection.");
+  }
+}
+
+export async function storeMicrosoftAccessToken(
   mailAccountId: string,
   userId: string,
   accessToken: string,

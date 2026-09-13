@@ -10,12 +10,14 @@ import { ProblemSection } from "@/components/marketing/problem-section";
 import { ProductPreview } from "@/components/marketing/product-preview";
 import { SecuritySection } from "@/components/marketing/security-section";
 import { TrustSection } from "@/components/marketing/trust-section";
+import { TrustedBy } from "@/components/marketing/trusted-by";
 
 export default function HomePage() {
   return (
     <main className="marketing-theme min-h-screen bg-background">
       <MarketingNavbar />
       <Hero />
+      <TrustedBy />
       <ProductPreview />
       <ProblemSection />
       <HowItWorks />

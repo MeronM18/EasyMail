@@ -1,8 +1,9 @@
 "use client";
 
+import { ArrowRight, Mail } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   EASE,
   motion,
@@ -50,9 +51,14 @@ const heroCtaVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE, delay: 0.52 } },
 };
 
-const heroBadgesVariants: Variants = {
+const heroFormVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE, delay: 0.62 } },
+};
+
+const heroHelperVariants: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE, delay: 0.7 } },
 };
 
 const heroArtworkVariants: Variants = {
@@ -120,7 +126,8 @@ export function Hero() {
   const wordContainerVariants = useSafeVariants(heroWordContainerVariants);
   const bodyVariants = useSafeVariants(heroBodyVariants);
   const ctaVariants = useSafeVariants(heroCtaVariants);
-  const badgesVariants = useSafeVariants(heroBadgesVariants);
+  const formVariants = useSafeVariants(heroFormVariants);
+  const helperVariants = useSafeVariants(heroHelperVariants);
 
   return (
     <section className="relative overflow-hidden bg-[#FAFAFA]" ref={ref}>
@@ -146,7 +153,7 @@ export function Hero() {
             variants={wordContainerVariants}
           >
             <HeroHeadlineLine text="Know what needs you." />
-            <HeroHeadlineLine className="text-text-muted" text="Across every inbox." />
+            <HeroHeadlineLine className="text-primary" text="Across every inbox." />
           </motion.h1>
 
           <motion.p
@@ -161,64 +168,70 @@ export function Hero() {
 
           <motion.div
             animate={animate}
-            className="mt-9"
+            className="mt-9 flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px]"
             initial="hidden"
             variants={ctaVariants}
           >
-            <p className="mb-3 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-text-subtle">
-              Connect your inbox
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button asChild className="h-[50px] min-w-[200px] rounded-[8px] px-5">
-                <Link href="/sign-up">
-                  <Image
-                    alt=""
-                    aria-hidden="true"
-                    height={15}
-                    src="/hero/gmail.svg"
-                    width={20}
-                  />
-                  Continue with Gmail
-                </Link>
-              </Button>
-              <Button
-                asChild
-                className="h-[50px] min-w-[210px] rounded-[8px] border-border bg-surface px-5 text-text shadow-none hover:bg-surface-hover"
-                variant="outline"
-              >
-                <Link href="/sign-up">
-                  <Image
-                    alt=""
-                    aria-hidden="true"
-                    height={20}
-                    src="/hero/outlook.svg"
-                    width={20}
-                  />
-                  Continue with Outlook
-                </Link>
-              </Button>
-            </div>
+            <span className="inline-flex items-center gap-2 font-medium text-text">
+              <Image
+                alt=""
+                aria-hidden="true"
+                height={16}
+                src="/hero/gmail.svg"
+                width={20}
+              />
+              Gmail
+            </span>
+            <span className="inline-flex items-center gap-2 font-medium text-text">
+              <Image
+                alt=""
+                aria-hidden="true"
+                height={20}
+                src="/hero/outlook.svg"
+                width={20}
+              />
+              Outlook
+            </span>
+            <span aria-hidden="true" className="h-4 w-px bg-border" />
+            <span className="text-text-subtle">Both available now.</span>
           </motion.div>
 
-          <motion.div
+          <motion.form
             animate={animate}
-            className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-1 text-[13px] text-text-subtle"
+            className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center"
             initial="hidden"
-            variants={badgesVariants}
+            onSubmit={(event) => event.preventDefault()}
+            variants={formVariants}
           >
-            <span className="inline-flex items-center gap-2">
-              <span aria-hidden="true">•</span>
-              Read-only access
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <span aria-hidden="true">•</span>
-              Gmail supported
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <span aria-hidden="true">•</span>
-              Outlook supported
-            </span>
-          </motion.div>
+            <div className="relative sm:w-[300px]">
+              <Mail
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-text-subtle"
+              />
+              <Input
+                className="h-[50px] rounded-full pl-10 text-[14px]"
+                name="email"
+                placeholder="Enter your email to get early access"
+                type="email"
+              />
+            </div>
+            <Button
+              className="h-[50px] shrink-0 rounded-full bg-text px-5 text-background hover:bg-text/90 active:bg-text/90"
+              type="submit"
+            >
+              Get early access
+              <ArrowRight aria-hidden="true" className="size-4" />
+            </Button>
+          </motion.form>
+
+          <motion.p
+            animate={animate}
+            className="mt-3 text-[12px] text-text-subtle"
+            initial="hidden"
+            variants={helperVariants}
+          >
+            No credit card. Join the waitlist.
+          </motion.p>
         </div>
         <HeroArtwork animate={animate} />
       </div>

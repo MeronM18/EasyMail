@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu } from "lucide-react";
+import { ArrowRight, Menu } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,8 +56,15 @@ export function MarketingNavbar() {
           >
             Sign in
           </Link>
-          <Button asChild size="sm">
-            <Link href="/sign-up">Get started</Link>
+          <Button
+            asChild
+            className="bg-text text-background hover:bg-text/90 active:bg-text/90"
+            size="sm"
+          >
+            <Link href="/sign-up">
+              Get early access
+              <ArrowRight aria-hidden="true" className="size-3.5" />
+            </Link>
           </Button>
         </div>
 
@@ -95,8 +102,14 @@ export function MarketingNavbar() {
                 </Button>
               </SheetClose>
               <SheetClose asChild>
-                <Button asChild>
-                  <Link href="/sign-up">Get started</Link>
+                <Button
+                  asChild
+                  className="bg-text text-background hover:bg-text/90 active:bg-text/90"
+                >
+                  <Link href="/sign-up">
+                    Get early access
+                    <ArrowRight aria-hidden="true" className="size-3.5" />
+                  </Link>
                 </Button>
               </SheetClose>
             </div>

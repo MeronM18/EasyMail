@@ -6,6 +6,7 @@ import { syncGmailAccount } from "@/lib/integrations/google/gmail-sync";
 import { exchangeGoogleAuthorizationCode } from "@/lib/integrations/google/oauth";
 import { upsertGoogleMailAccount } from "@/lib/integrations/mail-accounts";
 import { consumeOAuthState } from "@/lib/integrations/oauth-state";
+import { SyncAlreadyInProgressError } from "@/lib/integrations/sync-errors";
 import { logger } from "@/lib/logger";
 
 function settingsRedirect(query: string) {
@@ -39,10 +40,19 @@ export async function GET(request: Request) {
       grant,
     });
 
-    // Bounded to a 14-day/300-message window, so running inline stays well
-    // inside Vercel's default 300s function budget. Cron-driven incremental
-    // sync is separate follow-up work (approved Phase 11 order, step 5).
-    await syncGmailAccount(mailAccountId, "onboarding");
+    try {
+      // Bounded to a 14-day/300-message window, so running inline stays well
+      // inside Vercel's default 300s function budget. Cron-driven incremental
+      // sync is separate follow-up work (approved Phase 11 order, step 5).
+      await syncGmailAccount(mailAccountId, "onboarding");
+    } catch (syncError) {
+      if (!(syncError instanceof SyncAlreadyInProgressError)) throw syncError;
+      // The account above was just connected/upserted successfully; a
+      // different sync for it is already legitimately running (e.g. a
+      // near-simultaneous double-connect). That sync will finish and set
+      // its own status — this is not a connection failure (Phase 12, G6).
+      logger.info("oauth.google.sync_already_in_progress", { mailAccountId });
+    }
 
     return settingsRedirect("connected=google");
   } catch (error) {

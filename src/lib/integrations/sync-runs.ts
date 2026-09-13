@@ -1,5 +1,5 @@
 import "server-only";
-import { AppError } from "@/lib/errors";
+import { SyncAlreadyInProgressError } from "@/lib/integrations/sync-errors";
 import { isSyncRunStale } from "@/lib/integrations/sync-staleness";
 import { logger } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -87,10 +87,7 @@ export async function startSyncRun(params: {
     .single();
 
   if (error || !data) {
-    throw new AppError(
-      "INTEGRATION_ERROR",
-      "A sync is already in progress for this mailbox.",
-    );
+    throw new SyncAlreadyInProgressError();
   }
 
   return data.id;

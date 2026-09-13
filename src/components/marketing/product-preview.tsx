@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { IntentLabel } from "@/components/app/intent-label";
 import { intentMeta, type Intent } from "@/lib/intent";
 import {
   bodyVariants,
@@ -89,38 +90,21 @@ const categoryCounts: Record<PreviewIntent, number> = {
   can_ignore: 1,
 };
 
-const categoryStyles: Record<Intent, { dot: string; badge: string }> = {
+const categoryStyles: Record<Intent, { dot: string }> = {
   needs_reply: {
     dot: "bg-primary",
-    badge: "border-primary/20 bg-primary-subtle text-primary",
   },
   needs_action: {
     dot: "bg-warning",
-    badge: "border-warning/20 bg-warning-bg text-warning-fg",
   },
-  matters: { dot: "bg-text", badge: "border-border bg-surface text-text" },
+  matters: { dot: "bg-text" },
   can_ignore: {
     dot: "bg-text-subtle",
-    badge: "border-border bg-surface-muted text-text-muted",
   },
   cleanup_candidate: {
     dot: "bg-border-strong",
-    badge: "border-border/70 bg-background text-text-subtle",
   },
 };
-
-function CategoryBadge({ intent }: { intent: Intent }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex w-fit shrink-0 items-center rounded-[var(--radius-sm)] border px-2 py-1 text-[11px] font-medium leading-4",
-        categoryStyles[intent].badge,
-      )}
-    >
-      {intentMeta[intent].label}
-    </span>
-  );
-}
 
 function PreviewMessageRow({ message }: { message: (typeof previewMessages)[number] }) {
   const rowVariants = useSafeVariants(staggerItemVariants);
@@ -156,7 +140,7 @@ function PreviewMessageRow({ message }: { message: (typeof previewMessages)[numb
         </div>
         <div className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end sm:gap-1.5">
           <span className="font-mono text-[10px] text-text-subtle">{message.time}</span>
-          <CategoryBadge intent={message.intent} />
+          <IntentLabel className="shrink-0" intent={message.intent} />
         </div>
       </div>
       {message.reason ? (

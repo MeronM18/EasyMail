@@ -122,3 +122,17 @@ export function getSetupProgress(
     microsoftCount,
   };
 }
+
+/**
+ * A message ends in exactly one of pending/classified/failed (set by the
+ * sync/classify pipeline — never any other state without an explicit
+ * transition), so "pending" alone is the complete, accurate count. A
+ * permanently failed classification (Phase 12, G2) must not inflate this —
+ * nothing will ever reclassify it, so counting it as pending would be a
+ * permanent, misleading "still working on it" signal.
+ */
+export function countPendingMessages(
+  rows: Array<{ classification_status: string }>,
+): number {
+  return rows.filter((row) => row.classification_status === "pending").length;
+}

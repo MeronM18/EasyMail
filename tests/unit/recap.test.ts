@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RecapMessage } from "@/lib/recap";
 import {
+  countPendingMessages,
   getSetupProgress,
   getWindowStart,
   groupRecapMessages,
@@ -102,5 +103,38 @@ describe("deterministic recap", () => {
         { provider: "microsoft", status: "active" },
       ]).isComplete,
     ).toBe(true);
+  });
+});
+
+describe("countPendingMessages", () => {
+  it("counts only messages still pending", () => {
+    expect(
+      countPendingMessages([
+        { classification_status: "pending" },
+        { classification_status: "classified" },
+        { classification_status: "pending" },
+      ]),
+    ).toBe(2);
+  });
+
+  it("excludes permanently failed classifications (Phase 12, G2)", () => {
+    expect(
+      countPendingMessages([
+        { classification_status: "pending" },
+        { classification_status: "failed" },
+        { classification_status: "failed" },
+      ]),
+    ).toBe(1);
+  });
+
+  it("does not hide genuinely pending messages alongside failed ones", () => {
+    expect(
+      countPendingMessages([
+        { classification_status: "failed" },
+        { classification_status: "pending" },
+        { classification_status: "classified" },
+        { classification_status: "pending" },
+      ]),
+    ).toBe(2);
   });
 });

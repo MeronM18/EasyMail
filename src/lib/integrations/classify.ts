@@ -1,23 +1,15 @@
 import "server-only";
-import { generateObject, NoObjectGeneratedError } from "ai";
-import { z } from "zod";
+import { generateObject } from "ai";
 import { AppError } from "@/lib/errors";
 import { getAiClassifyConfig } from "@/lib/integrations/config";
-import { intents } from "@/lib/intent";
+import {
+  classificationSchema,
+  isTransientClassifyError,
+  tryRepairNoObjectGenerated,
+} from "@/lib/integrations/classify-errors";
 import { logger } from "@/lib/logger";
+import { retryTransient } from "@/lib/retry";
 import { createServiceClient } from "@/lib/supabase/admin";
-
-/**
- * Structured classification (ARCHITECTURE.md): intent enum + short reason +
- * optional action signal. The message body is untrusted user-facing content,
- * never treated as instructions — the schema constrains the model's output
- * regardless of what the email itself says.
- */
-const classificationSchema = z.object({
-  intent: z.enum(intents),
-  reason: z.string().max(160),
-  actionSignal: z.string().max(160).nullable(),
-});
 
 type PendingMessage = {
   id: string;
@@ -28,7 +20,14 @@ type PendingMessage = {
   body_text: string | null;
 };
 
-async function classifyOne(message: PendingMessage, model: string) {
+// Bounded retry for genuinely transient classification failures (Phase 12,
+// G3) — small on purpose, since this runs per-message inside a batch of up
+// to 300; delays are kept short so a run of transient failures can't
+// meaningfully compound toward the function's execution ceiling.
+const CLASSIFY_MAX_ATTEMPTS = 3;
+const CLASSIFY_RETRY_BASE_DELAY_MS = 250;
+
+export async function classifyOne(message: PendingMessage, model: string) {
   const prompt = [
     "Classify this email into exactly one of five intents for an inbox triage tool.",
     "- needs_reply: expects a response from the recipient.",
@@ -45,37 +44,29 @@ async function classifyOne(message: PendingMessage, model: string) {
     message.body_text ? `Body: ${message.body_text.slice(0, 2000)}` : "",
   ].join("\n");
 
-  try {
-    const { object } = await generateObject({
-      model,
-      schema: classificationSchema,
-      prompt,
-    });
-    return object;
-  } catch (error) {
-    // Providers reliably enforce the intent enum in structured output, but
-    // string length limits (`reason`/`actionSignal`, max 160) are not
-    // strictly enforced at the token level by any provider — a response a
-    // few characters over is a known near-miss, not a real classification
-    // failure. Repair by truncating and re-validating rather than
-    // discarding an otherwise-good classification; the schema itself is
-    // unchanged, and a genuinely malformed response still fails below.
-    if (NoObjectGeneratedError.isInstance(error) && error.text) {
-      try {
-        const raw = JSON.parse(error.text) as Record<string, unknown>;
-        if (typeof raw.reason === "string" && raw.reason.length > 160) {
-          raw.reason = raw.reason.slice(0, 160);
-        }
-        if (typeof raw.actionSignal === "string" && raw.actionSignal.length > 160) {
-          raw.actionSignal = raw.actionSignal.slice(0, 160);
-        }
-        return classificationSchema.parse(raw);
-      } catch {
-        // Not repairable — fall through to the original error.
-      }
-    }
-    throw error;
-  }
+  return retryTransient(
+    async () => {
+      const { object } = await generateObject({
+        model,
+        schema: classificationSchema,
+        prompt,
+      });
+      return object;
+    },
+    {
+      maxAttempts: CLASSIFY_MAX_ATTEMPTS,
+      baseDelayMs: CLASSIFY_RETRY_BASE_DELAY_MS,
+      isTransient: isTransientClassifyError,
+      recover: tryRepairNoObjectGenerated,
+      onRetry: (attempt, delayMs) => {
+        logger.warn("classify.retrying_transient_failure", {
+          messageId: message.id,
+          attempt,
+          delayMs,
+        });
+      },
+    },
+  );
 }
 
 export type ClassifyResult = { classified: number; failed: number };

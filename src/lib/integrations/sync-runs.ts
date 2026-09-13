@@ -1,28 +1,11 @@
 import "server-only";
 import { AppError } from "@/lib/errors";
+import { isSyncRunStale } from "@/lib/integrations/sync-staleness";
 import { logger } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/admin";
 
 export type SyncTrigger = "onboarding" | "cron" | "manual";
 export type SyncFinishStatus = "succeeded" | "failed" | "partial";
-
-/**
- * How long a `queued`/`running` sync run may sit without finishing before
- * it's considered abandoned (the process was killed/timed out rather than
- * completing normally) — not a bug to retry past, but not a legitimate
- * in-flight sync either. Set comfortably above Vercel's default 300s
- * function ceiling so a genuinely still-running sync is never reaped.
- */
-export const STALE_SYNC_RUN_THRESHOLD_MS = 10 * 60 * 1000;
-
-export function staleSyncRunCutoff(now = new Date()): Date {
-  return new Date(now.valueOf() - STALE_SYNC_RUN_THRESHOLD_MS);
-}
-
-/** Pure staleness decision — kept separate from the DB call so it's directly unit-testable. */
-export function isSyncRunStale(startedAt: Date, now = new Date()): boolean {
-  return startedAt.valueOf() < staleSyncRunCutoff(now).valueOf();
-}
 
 /**
  * Marks any genuinely stale `queued`/`running` run for this account as

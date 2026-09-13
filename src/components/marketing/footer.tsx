@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const productLinks = [
@@ -21,7 +22,14 @@ export function Footer() {
               className="brand-link -ml-1.5 inline-flex items-center gap-2 rounded-[var(--radius-md)] px-1.5 py-1"
               href="/"
             >
-              <span aria-hidden="true" className="size-[18px] rounded-[6px] bg-primary" />
+              <Image
+                alt=""
+                aria-hidden="true"
+                className="size-[22px] shrink-0 rounded-[6px]"
+                height={22}
+                src="/logo.png"
+                width={22}
+              />
               <span className="text-[17px] font-semibold tracking-[-0.02em] text-text">
                 EasyMail
               </span>

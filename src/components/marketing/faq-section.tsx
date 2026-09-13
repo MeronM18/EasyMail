@@ -1,25 +1,36 @@
+"use client";
+
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  bodyVariants,
+  eyebrowVariants,
+  headlineVariants,
+  motion,
+  RevealGroup,
+  staggerItemVariants,
+  useSafeVariants,
+} from "@/components/marketing/motion";
 
 const faqs: Array<{ question: string; answer: string }> = [
   {
     question: "Does EasyMail read or store my email?",
     answer:
-      "EasyMail stores message metadata and a short-lived copy of the body — kept for up to 7 days — solely to classify messages and build your recap. Access to your mailbox is read-only.",
+      "EasyMail stores message metadata and a short-lived copy of the body—kept for up to 7 days—solely to classify messages and build your recap. Access to your mailbox is read-only.",
   },
   {
     question: "Can EasyMail send, delete, or archive anything for me?",
     answer:
-      "No. Access is read-only. EasyMail can never send, archive, delete, or modify anything in your mailbox.",
+      "No. Access is read-only. EasyMail cannot send, archive, delete, or modify anything in your mailbox.",
   },
   {
     question: "What happens if it gets a classification wrong?",
     answer:
-      "Move it to any of the five categories in one click. Your correction is permanent — EasyMail won't reclassify that message back on a later sync.",
+      "Move the message to any of the five categories. Your correction is permanent, so a later sync cannot silently reclassify it back.",
   },
   {
     question: "How long is my data kept?",
@@ -28,33 +39,64 @@ const faqs: Array<{ question: string; answer: string }> = [
   },
   {
     question: "Which inboxes does EasyMail support?",
-    answer: "Gmail is supported today. Outlook support is planned.",
+    answer: "Gmail and Outlook are supported today.",
   },
 ];
 
 export function FaqSection() {
+  const eyebrow = useSafeVariants(eyebrowVariants);
+  const headline = useSafeVariants(headlineVariants);
+  const body = useSafeVariants(bodyVariants);
+  const staggerItem = useSafeVariants(staggerItemVariants);
   return (
-    <section className="border-b border-border">
-      <div className="mx-auto max-w-3xl px-6 py-20 lg:px-8 lg:py-28">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-[13px] font-medium leading-5 text-primary">FAQ</p>
-          <h2 className="mt-4 text-[26px] font-semibold leading-8 tracking-[-0.01em] text-text sm:text-[30px] sm:leading-9">
-            Questions people actually ask
-          </h2>
-        </div>
+    <section className="border-b border-border bg-[#F5F7F9]">
+      <div className="mx-auto grid max-w-6xl gap-12 px-6 py-24 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)] lg:gap-20 lg:px-8 lg:py-32">
+        <RevealGroup>
+          <motion.p
+            className="font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-primary"
+            variants={eyebrow}
+          >
+            FAQ
+          </motion.p>
+          <motion.h2
+            className="mt-5 max-w-md text-[clamp(2.25rem,4vw,3.75rem)] font-semibold leading-[1] tracking-[-0.03em] text-text"
+            variants={headline}
+          >
+            Clear answers before you connect.
+          </motion.h2>
+          <motion.p
+            className="mt-6 max-w-sm text-[14px] leading-6 text-text-muted"
+            variants={body}
+          >
+            The short version: EasyMail reads only what it needs, keeps it briefly, and
+            never acts inside your inbox.
+          </motion.p>
+        </RevealGroup>
 
-        <Accordion className="mt-12" type="single" collapsible>
-          {faqs.map((faq) => (
-            <AccordionItem key={faq.question} value={faq.question}>
-              <AccordionTrigger className="text-[15px] font-medium text-text hover:no-underline">
-                {faq.question}
-              </AccordionTrigger>
-              <AccordionContent className="text-[13px] leading-6 text-text-muted">
-                {faq.answer}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+        <RevealGroup as="div" margin="-10% 0px -5% 0px" staggerChildren={0.07}>
+          <Accordion className="border-t border-border" collapsible type="single">
+            {faqs.map((faq, index) => (
+              <motion.div key={faq.question} variants={staggerItem}>
+                <AccordionItem
+                  className="px-3 transition-colors hover:bg-white/60 sm:px-4"
+                  value={faq.question}
+                >
+                  <AccordionTrigger className="gap-5 py-6 text-left transition-colors hover:text-primary text-[15px] font-medium leading-6 text-text hover:no-underline">
+                    <span className="flex min-w-0 items-start gap-4">
+                      <span className="mt-0.5 shrink-0 font-mono text-[10px] text-text-subtle">
+                        0{index + 1}
+                      </span>
+                      <span>{faq.question}</span>
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-6 pl-8 text-[13px] leading-6 text-text-muted sm:pl-10">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              </motion.div>
+            ))}
+          </Accordion>
+        </RevealGroup>
       </div>
     </section>
   );

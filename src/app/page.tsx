@@ -13,7 +13,7 @@ import { TrustSection } from "@/components/marketing/trust-section";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-background">
+    <main className="marketing-theme min-h-screen bg-background">
       <MarketingNavbar />
       <Hero />
       <ProductPreview />

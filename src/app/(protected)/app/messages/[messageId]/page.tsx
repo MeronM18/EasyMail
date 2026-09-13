@@ -5,6 +5,7 @@ import { CorrectionForm } from "@/components/app/correction-form";
 import { IntentLabel } from "@/components/app/intent-label";
 import { getMessageDetail } from "@/lib/data/recap";
 import { intentMeta } from "@/lib/intent";
+import { parseMessageBodySegments } from "@/lib/message-body";
 
 export const metadata: Metadata = { title: "Message detail" };
 
@@ -72,7 +73,24 @@ export default async function MessageDetailPage({
               <h2 id="message-heading">Message preview</h2>
             </div>
             <div className="mt-5 max-w-3xl whitespace-pre-wrap text-[14px] leading-7 text-text-muted [overflow-wrap:anywhere]">
-              {message.bodyText || message.snippet || "No preview is available."}
+              {message.bodyText || message.snippet
+                ? parseMessageBodySegments(message.bodyText || message.snippet).map(
+                    (segment, index) =>
+                      segment.type === "link" ? (
+                        <a
+                          className="font-medium text-primary underline underline-offset-2 hover:text-primary-hover"
+                          href={segment.href}
+                          key={index}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                        >
+                          {segment.label}
+                        </a>
+                      ) : (
+                        segment.value
+                      ),
+                  )
+                : "No preview is available."}
             </div>
             {message.webLink ? (
               <a

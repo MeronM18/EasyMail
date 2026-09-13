@@ -71,6 +71,14 @@ export async function classifyOne(message: PendingMessage, model: string) {
 
 export type ClassifyResult = { classified: number; failed: number };
 
+// Restrained pacing between actual AI Gateway calls (Phase 12, G7) — small
+// enough not to meaningfully slow a typical small batch, but enough to
+// spread out a large batch's request rate rather than bursting up to 300
+// calls back-to-back. Skipped entirely for a message that short-circuits on
+// an existing user override (no Gateway call happens), and never applied
+// after the last message.
+const CLASSIFY_PACING_DELAY_MS = 100;
+
 /**
  * Classifies up to `limit` pending messages for one mail account (batch-size
  * cap per SECURITY.md). Never overwrites a message the user has already
@@ -96,10 +104,14 @@ export async function classifyPendingMessages(
     throw new AppError("DATA_ACCESS_FAILED", "Could not load pending messages.");
   }
 
+  const pendingMessages = pending ?? [];
   let classified = 0;
   let failed = 0;
 
-  for (const message of pending ?? []) {
+  for (let index = 0; index < pendingMessages.length; index += 1) {
+    const message = pendingMessages[index];
+    let calledModel = false;
+
     try {
       const { data: existing } = await supabase
         .from("message_classifications")
@@ -116,6 +128,7 @@ export async function classifyPendingMessages(
         continue;
       }
 
+      calledModel = true;
       const result = await classifyOne(message, model);
 
       const { error: upsertError } = await supabase
@@ -151,6 +164,11 @@ export async function classifyPendingMessages(
         .from("messages")
         .update({ classification_status: "failed" })
         .eq("id", message.id);
+    } finally {
+      const isLastMessage = index === pendingMessages.length - 1;
+      if (calledModel && !isLastMessage) {
+        await new Promise((resolve) => setTimeout(resolve, CLASSIFY_PACING_DELAY_MS));
+      }
     }
   }
 

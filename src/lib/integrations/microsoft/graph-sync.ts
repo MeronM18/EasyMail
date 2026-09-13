@@ -16,12 +16,14 @@ import {
   storeMicrosoftAccessToken,
   type MailAccountForSync,
 } from "@/lib/integrations/mail-accounts";
+import { ProviderReauthRequiredError } from "@/lib/integrations/oauth-errors";
 import { bodyRetentionDeadline } from "@/lib/integrations/retention";
 import {
   finishSyncRun,
   startSyncRun,
   type SyncTrigger,
 } from "@/lib/integrations/sync-runs";
+import { decideSyncOutcome } from "@/lib/integrations/sync-outcome";
 import { logger } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/admin";
 
@@ -161,19 +163,16 @@ export async function syncMicrosoftAccount(
       MAX_MESSAGES_PER_SYNC,
     );
 
-    const hasPartialFailure = fetchFailed > 0 || classifyFailed > 0;
-    const accountRecovered = stored > 0 || classified > 0 || alreadyStored.size > 0;
+    const outcome = decideSyncOutcome({ fetchFailed, classifyFailed });
 
     await markMailAccountSynced(account.id, account.userId, new Date());
     await markMailAccountStatus(
       account.id,
       account.userId,
-      accountRecovered ? "active" : "sync_error",
-      accountRecovered && hasPartialFailure
-        ? "The last sync only partially completed. It will retry automatically."
-        : null,
+      outcome.accountStatus,
+      outcome.statusMessage,
     );
-    await finishSyncRun(syncRunId, hasPartialFailure ? "partial" : "succeeded", {
+    await finishSyncRun(syncRunId, outcome.finishStatus, {
       seen: bounded.length,
       alreadyStored: alreadyStored.size,
       stored,
@@ -184,15 +183,22 @@ export async function syncMicrosoftAccount(
 
     return { fetched: bounded.length, stored, classified, classifyFailed };
   } catch (error) {
+    // An expired/revoked refresh token is permanent — no retry will fix it,
+    // and the account needs the user to reconnect (Phase 12, G4). Anything
+    // else (network blips, provider 5xx) is a transient sync failure.
+    const reauthRequired = error instanceof ProviderReauthRequiredError;
     logger.error("sync.microsoft.failed", {
       mailAccountId: account.id,
+      reauthRequired,
       error: error instanceof Error ? error.message : "unknown error",
     });
     await markMailAccountStatus(
       account.id,
       account.userId,
-      "sync_error",
-      "The last sync attempt failed. It will retry automatically.",
+      reauthRequired ? "needs_reconnect" : "sync_error",
+      reauthRequired
+        ? "This account's connection is no longer valid. Reconnect to keep syncing."
+        : "The last sync attempt failed.",
     );
     await finishSyncRun(
       syncRunId,

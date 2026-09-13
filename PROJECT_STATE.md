@@ -5,11 +5,11 @@
 ## Build Status
 
 * **Project initialized:** Yes
-* **Current phase:** Phase 11 — Integrations (**Complete.** Google and Microsoft/Outlook vertical slices are both live-verified end-to-end against real accounts and approved by the product owner, on `feature/phase-11-outlook`; not yet merged to `main`)
-* **Current objective:** Merge `feature/phase-11-outlook` to `main` once explicitly authorized, then begin Phase 12 — Edge Cases & Reliability.
-* **Next milestone:** After merge: incremental Cron sync + full Settings reconnect/disconnect UI for both providers, then proceed into Phase 12 per the `BUILD_FROM_ZERO.md` phase order.
+* **Current phase:** Phase 12 — Edge Cases & Reliability (**In progress, not complete.** An 8-item reliability audit (G1–G8) was approved and implemented on `feature/phase-12-reliability`; all automated verification passes, but exit criteria have only been demonstrated via unit tests of the extracted decision logic, not live reproduction of the actual failure conditions — see Phase 12 Reliability Checkpoint below)
+* **Current objective:** Product owner review of the Phase 12 implementation; decide whether unit-test-level evidence is sufficient to approve, or whether a scoped live-verification pass is wanted first, before merging `feature/phase-12-reliability` to `main`.
+* **Next milestone:** After Phase 12 is approved and merged: incremental Cron sync + full Settings reconnect/disconnect UI for both providers (deferred out of both Phase 11 and Phase 12), then Phase 13 — Testing.
 * **Design gate:** Resolved by DEC-013. The authenticated product visual direction is approved; Geist Sans and `#1F5FA9` remain explicitly provisional.
-* **Last updated:** 2026-09-13 (Phase 11 Microsoft/Outlook live-verified and approved; message-detail layout and link-rendering fixes committed; branch not yet merged or pushed)
+* **Last updated:** 2026-09-13 (Phase 12 reliability fixes G1–G8 implemented and unit-tested on `feature/phase-12-reliability`; not yet merged or pushed)
 
 ## Phase Progress
 
@@ -84,7 +84,7 @@
 
 ## Blocking Decisions
 
-None. Both the Google and Microsoft/Outlook Phase 11 vertical slices are complete, live-verified end-to-end against real accounts, and approved by the product owner (final approval 2026-09-13). `feature/phase-11-outlook` is ready to merge to `main` but has not been merged or pushed — that requires separate explicit authorization.
+None. Both the Google and Microsoft/Outlook Phase 11 vertical slices are complete, live-verified end-to-end against real accounts, and approved by the product owner (final approval 2026-09-13). `feature/phase-11-outlook` was merged to `main` via fast-forward and pushed to `origin/main` on 2026-09-13 (`main` HEAD `ff3eccc`).
 
 ## Major Risks
 
@@ -128,6 +128,26 @@ None. Both the Google and Microsoft/Outlook Phase 11 vertical slices are complet
 * Final interactive verification submitted the actual correction server action, persisted one owner override and one immutable audit row, and verified the complete recap-visit lifecycle including refresh stability and 30-minute expiry rollover. The run exposed and fixed a Next.js runtime-only action-module export violation.
 * Final Phase 10 suite passes: format, lint, typecheck, 17 unit tests, 8 forced local RLS tests, production build, authenticated interaction checks, and diff inspection.
 * Product owner gave final Phase 10 approval on 2026-09-11. Closeout diff/status review found no accidental files, secrets, debug artifacts, or Phase 11 scope; `.env.local`, `node_modules`, `.next`, and local Supabase data remain untracked; `git diff --check` passed. Created the Phase 10 checkpoint commit.
+* Merged `feature/phase-11-outlook` to `main` via fast-forward and pushed to `origin/main` on 2026-09-13 after final product-owner approval.
+* Performed and got approval for a Phase 12 reliability audit of the existing Gmail/Outlook integrations (8 findings, G1–G8, no P0s), then implemented all 8 fixes on `feature/phase-12-reliability` in 7 logical checkpoints, adding 40 new unit tests for the extracted decision logic. Full suite (108 unit tests, 10 RLS tests, build) passes. Not yet live-verified, not yet merged.
+
+## Phase 12 Reliability Checkpoint (branch: `feature/phase-12-reliability`, not yet merged)
+
+* **Audit:** An 8-item reliability audit of the existing Phase 11 integrations (Gmail/Outlook OAuth, sync, classification, correction, retention) was performed against `BUILD_FROM_ZERO.md`'s Phase 12 definition and approved by the product owner before any code changed. No P0 issues were found. Full findings are in this session's transcript; summarized fixes below.
+* **G5 — Stale sync-run recovery (P1, must-fix).** A `sync_runs` row stuck `queued`/`running` because its process was killed/timed out (rather than throwing a caught exception) previously blocked all future syncs for that account forever, via the DB's one-active-run-per-account unique index. `startSyncRun` now reaps any run stuck past a conservative 10-minute threshold (2x Vercel's 300s function ceiling) before inserting, marking it `failed` with an accurate `error_summary`. The staleness decision (`isSyncRunStale`, `src/lib/integrations/sync-staleness.ts`) is pure and unit-tested; the reap itself is best-effort and never weakens the unique index.
+* **G4 — Revoked/invalid OAuth grant detection (P1, must-fix).** `refreshGoogleAccessToken`/`refreshMicrosoftAccessToken` previously threw the same generic error for any refresh failure. Both now detect the RFC 6749 `error: "invalid_grant"` response both providers use for an expired/revoked refresh token (`src/lib/integrations/oauth-errors.ts`, unit-tested) and the sync layer sets `mail_accounts.status = "needs_reconnect"` with an accurate message only for that specific, permanent case — a transient failure still gets the generic `sync_error` path. No new UI: the existing "Connect Google/Outlook account" button already re-upserts and refreshes tokens on repeat use, so it doubles as the reconnect action.
+* **G1 — Empty inbox is a successful sync (P1, must-fix).** Both `syncGmailAccount` and `syncMicrosoftAccount` previously decided success from `stored > 0 || classified > 0 || alreadyStored.size > 0`, which is false for a legitimately empty result (a quiet inbox), mislabeling a working sync as `sync_error`. Replaced with `decideSyncOutcome` (`src/lib/integrations/sync-outcome.ts`, unit-tested, shared by both providers), which decides status purely from actual fetch/classify failure counts. Also removed the "It will retry automatically" claim from all sync failure messages — no automatic retry mechanism exists yet, so that claim was false; the `needs_reconnect` message now names the real recovery action instead.
+* **G3 — Bounded transient AI classification retry (P1, must-fix).** `classifyOne` now retries a genuinely transient failure (AI SDK `APICallError.isRetryable` — rate limiting, 5xx — or a network-level `TypeError`) up to 3 attempts with small bounded backoff, via a new generic `retryTransient` utility (`src/lib/retry.ts`, unit-tested). A malformed/invalid structured-output response (`NoObjectGeneratedError`) is never blindly retried — the existing truncate-and-re-validate repair path is preserved exactly (`src/lib/integrations/classify-errors.ts`, unit-tested).
+* **G2 — Failed classifications excluded from pendingCount (P1, must-fix).** Per product-owner decision, no new "couldn't classify" UI this phase. `pendingCount` now counts only `classification_status = "pending"` (`countPendingMessages`, `src/lib/recap.ts`, unit-tested) instead of also counting any message with no classification row — which previously included permanently `failed` messages that will never be reclassified, silently and permanently inflating the "pending" badge.
+* **G6 — Duplicate OAuth completion no longer reports false failure (P2, should-fix).** `startSyncRun` now throws a distinct `SyncAlreadyInProgressError` (`src/lib/integrations/sync-errors.ts`, unit-tested) instead of a generic error for the DB's concurrency conflict. Both OAuth callback routes catch this specifically: if the account was already connected/upserted and the only issue is that a different sync for it is legitimately already running (e.g. a near-simultaneous double-connect), the callback still reports success. Any other sync failure still propagates unchanged.
+* **G7 — Restrained AI classification pacing (P2, should-fix).** `classifyPendingMessages` now waits 100ms between messages that actually call the AI Gateway (skipped for override short-circuits and after the last message), reducing how easily a large batch bursts into rate limiting.
+* **G8 — Best-effort sync failure cleanup (P2, should-fix).** Extracted `recordSyncFailure` (`src/lib/integrations/sync-failure-cleanup.ts`), used by both providers' outer catch blocks: a secondary DB failure while recording a sync's failure outcome is now logged rather than an unhandled rejection, and never replaces the original error that's still reported to the caller.
+* **Files changed:** 7 new pure/testable modules (`sync-staleness.ts`, `oauth-errors.ts`, `sync-outcome.ts`, `retry.ts`, `classify-errors.ts`, `sync-errors.ts`, `sync-failure-cleanup.ts`); modified `sync-runs.ts`, `classify.ts`, `gmail-sync.ts`, `graph-sync.ts`, `google/oauth.ts`, `microsoft/oauth.ts`, `data/recap.ts`, `lib/recap.ts`, and both OAuth callback routes (only their post-connect sync handling).
+* **Testing approach:** this codebase's `server-only` marker genuinely throws when imported outside Next.js's bundler (confirmed empirically), so every fix's decision logic was extracted into a plain, non-server-only module and unit-tested directly — matching the existing `message-parser.ts`/`retention.ts` pattern — rather than attempting to mock the DB/network orchestration in `gmail-sync.ts`/`graph-sync.ts` themselves (which, consistent with existing project practice, have no direct unit tests and are verified live instead).
+* **Verification:** format, lint, typecheck, **108 unit tests** (up from 68 — 40 new, covering every G1–G8 decision), **10 forced local RLS tests** (unchanged — no schema/policy changes), production build, and `git diff --check` (working tree and full branch diff) all pass.
+* **Not live-verified:** none of G1–G8 has been exercised against its real triggering condition (an actual killed/stale sync process, an actual revoked token, an actual empty real inbox, an actual transient AI Gateway failure, an actual double-connect race, an actual secondary DB failure). Several of these are impractical or unsafe to reproduce live on demand (deliberately killing a serverless function mid-run, revoking a real production token just to test). Unit tests demonstrate the decision logic is correct in isolation; they do not demonstrate the full failure-to-recovery path the way Phase 11's live verification did.
+* **Not in scope (explicitly deferred, per product-owner constraints):** Cron/incremental sync, disconnect/revoke UI, any new product feature, the 5-account soft cap and other abuse controls (Phase 14), and any new observability/metrics (Phase 15).
+* **Status:** Implemented, unit-tested, and self-verified. Not yet reviewed or approved by the product owner. Not merged to `main`, not pushed.
 
 ## Phase 11 Google Checkpoint
 
@@ -155,7 +175,7 @@ None. Both the Google and Microsoft/Outlook Phase 11 vertical slices are complet
 * **Settings UI:** Added a second "Connect Outlook account" button and a `connected=microsoft` status banner beside the existing Google ones. No layout/design change beyond that.
 * **Full verification suite (final, post message-rendering fix):** format, lint, typecheck, **68 unit tests** (up from 43 before this branch), **10 forced local RLS tests** (unchanged — no policy changes were needed for Microsoft or either fix), and a production build all pass; `git diff --check` clean.
 * **Not yet done:** Disconnect UI, incremental Cron sync, and `revokeMicrosoftToken` (implemented as a documented no-op — Microsoft has no public per-refresh-token revoke endpoint) remain unused pending later reconnect/disconnect UX work, matching Google's current state. Further rich email-body rendering (beyond link cleanup) is deferred as a separate future UX enhancement, not Phase 11 scope.
-* **Status:** Live-verified against a real Microsoft/Outlook account and approved by the product owner on 2026-09-13. Committed on `feature/phase-11-outlook` (`7bad042`, `29c64c6`, `1ec5cae`). Not yet merged to `main`, not pushed.
+* **Status:** Live-verified against a real Microsoft/Outlook account and approved by the product owner on 2026-09-13. Merged to `main` via fast-forward and pushed to `origin/main` on 2026-09-13 (final commit `ff3eccc`, which also includes the Phase 11 closeout doc commit).
 
 ## Phase 11 Exit Review
 
@@ -163,7 +183,7 @@ None. Both the Google and Microsoft/Outlook Phase 11 vertical slices are complet
 * **Failure/reconnect behavior is known — Pass.** Both providers retry/backoff on their real throttling signals (Gmail's 403 `rateLimitExceeded`; Graph's 429/`Retry-After` and 5xx); `sync_runs` records `succeeded`/`partial`/`failed` outcomes; a full Google reconnect was exercised. Disconnect UI is explicitly deferred for both providers (documented, not a Phase 11 blocker per DEC-009/SECURITY.md scope).
 * **Credentials are handled securely — Pass.** AES-256-GCM at rest for both providers, service-role-only access path, PKCE + single-use CSRF `oauth_states` row, least-privilege scopes only (`gmail.readonly`; `Mail.Read`/`offline_access`/`User.Read` — no ReadWrite/Send/app-only), no raw token or message-body logging in application code.
 * **Duplicate actions are controlled — Pass.** Idempotent per-account sync via the `(mail_account_id, provider_message_id)` unique constraint plus an already-stored skip-before-fetch guard; `sync_runs`' partial unique index prevents overlapping syncs for the same account.
-* **Overall — Complete.** All Phase 11 exit criteria are satisfied for both providers. The product owner gave final Phase 11 approval on 2026-09-13, including the message-detail layout and link-rendering fixes surfaced during live verification. `feature/phase-11-outlook` is ready to merge but has not been merged or pushed.
+* **Overall — Complete.** All Phase 11 exit criteria are satisfied for both providers. The product owner gave final Phase 11 approval on 2026-09-13, including the message-detail layout and link-rendering fixes surfaced during live verification. Merged to `main` via fast-forward and pushed to `origin/main` on 2026-09-13.
 
 ## Phase 10 Visual Checkpoint
 
@@ -190,10 +210,11 @@ None. Both the Google and Microsoft/Outlook Phase 11 vertical slices are complet
 
 ## Next Actions
 
-1. Merge `feature/phase-11-outlook` into `main` once explicitly authorized (not yet done — branch is ready, but merging and pushing both require separate authorization).
-2. Rotate the local-dev Microsoft OAuth client secret that was transcribed into chat during setup — treat it as logged and not safe to reuse beyond this local verification.
-3. After merge: incremental Cron sync and full Settings reconnect/disconnect UI for both providers.
-4. Begin Phase 12 — Edge Cases & Reliability only after explicit authorization, re-reading that phase's section in `BUILD_FROM_ZERO.md` first.
+1. Product owner reviews the Phase 12 implementation on `feature/phase-12-reliability` and decides: approve based on unit-test evidence, or request a scoped live-verification pass first (the empty-inbox and double-connect-race cases are practically reproducible live; the stale-run, revoked-token, and transient-AI-failure cases are harder to trigger safely on demand).
+2. Merge `feature/phase-12-reliability` into `main` and push, once explicitly authorized.
+3. Rotate the local-dev Microsoft OAuth client secret that was transcribed into chat during Phase 11 setup — treat it as logged and not safe to reuse beyond this local verification.
+4. After Phase 12 is merged: incremental Cron sync and full Settings reconnect/disconnect UI for both providers (still deferred, unchanged from the prior plan).
+5. Begin Phase 13 — Testing only after explicit authorization, re-reading that phase's section in `BUILD_FROM_ZERO.md` first.
 
 ## State Management Rules
 

@@ -21,6 +21,7 @@ import {
 } from "@/lib/integrations/mail-accounts";
 import { ProviderReauthRequiredError } from "@/lib/integrations/oauth-errors";
 import { bodyRetentionDeadline } from "@/lib/integrations/retention";
+import { recordSyncFailure } from "@/lib/integrations/sync-failure-cleanup";
 import {
   finishSyncRun,
   startSyncRun,
@@ -205,25 +206,27 @@ export async function syncGmailAccount(
     // and the account needs the user to reconnect (Phase 12, G4). Anything
     // else (network blips, provider 5xx) is a transient sync failure.
     const reauthRequired = error instanceof ProviderReauthRequiredError;
+    const errorMessage = error instanceof Error ? error.message : "unknown error";
     logger.error("sync.gmail.failed", {
       mailAccountId: account.id,
       reauthRequired,
-      error: error instanceof Error ? error.message : "unknown error",
+      error: errorMessage,
     });
-    await markMailAccountStatus(
-      account.id,
-      account.userId,
-      reauthRequired ? "needs_reconnect" : "sync_error",
-      reauthRequired
+
+    // Best-effort (Phase 12, G8): a secondary DB failure while recording
+    // this outcome must never mask or replace the original sync failure
+    // below.
+    await recordSyncFailure({
+      mailAccountId: account.id,
+      userId: account.userId,
+      syncRunId,
+      accountStatus: reauthRequired ? "needs_reconnect" : "sync_error",
+      statusMessage: reauthRequired
         ? "This account's connection is no longer valid. Reconnect to keep syncing."
         : "The last sync attempt failed.",
-    );
-    await finishSyncRun(
-      syncRunId,
-      "failed",
-      {},
-      error instanceof Error ? error.message : "unknown error",
-    );
+      errorSummary: errorMessage,
+    });
+
     throw error instanceof AppError
       ? error
       : new AppError("INTEGRATION_ERROR", "Gmail sync failed.");

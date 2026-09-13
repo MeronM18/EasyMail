@@ -1,6 +1,11 @@
 import "server-only";
 import { AppError } from "@/lib/errors";
 import { getMicrosoftOAuthConfig } from "@/lib/integrations/config";
+import {
+  isInvalidGrantError,
+  parseOAuthErrorBody,
+  ProviderReauthRequiredError,
+} from "@/lib/integrations/oauth-errors";
 
 /**
  * Least-privilege scopes only (SECURITY.md) — never widen without a new
@@ -109,6 +114,14 @@ export async function refreshMicrosoftAccessToken(
   });
 
   if (!response.ok) {
+    // Microsoft reports an expired/revoked/invalid refresh token as
+    // `error: "invalid_grant"` (same RFC 6749 code Google uses) — permanent,
+    // never fixed by retrying. Never log or surface the response body
+    // itself, only the classified outcome.
+    const bodyText = await response.text().catch(() => "");
+    if (isInvalidGrantError(parseOAuthErrorBody(bodyText))) {
+      throw new ProviderReauthRequiredError();
+    }
     throw new AppError(
       "INTEGRATION_ERROR",
       "Microsoft refused to refresh the mailbox connection.",

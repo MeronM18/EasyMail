@@ -1,6 +1,11 @@
 import "server-only";
 import { AppError } from "@/lib/errors";
 import { getGoogleOAuthConfig } from "@/lib/integrations/config";
+import {
+  isInvalidGrantError,
+  parseOAuthErrorBody,
+  ProviderReauthRequiredError,
+} from "@/lib/integrations/oauth-errors";
 
 const AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
@@ -99,6 +104,13 @@ export async function refreshGoogleAccessToken(
   });
 
   if (!response.ok) {
+    // Google reports an expired/revoked/invalid refresh token as
+    // `error: "invalid_grant"` — permanent, never fixed by retrying. Never
+    // log or surface the response body itself, only the classified outcome.
+    const bodyText = await response.text().catch(() => "");
+    if (isInvalidGrantError(parseOAuthErrorBody(bodyText))) {
+      throw new ProviderReauthRequiredError();
+    }
     throw new AppError(
       "INTEGRATION_ERROR",
       "Google refused to refresh the mailbox connection.",

@@ -24,11 +24,12 @@ import {
 
 const recapRows: Array<{
   subject: string;
-  intent: "needs_reply" | "needs_action" | "matters";
+  intent: "needs_reply" | "needs_action" | "matters" | "can_ignore";
 }> = [
   { subject: "Review launch brief", intent: "needs_reply" },
   { subject: "August expense receipt", intent: "needs_action" },
   { subject: "Fall schedule finalized", intent: "matters" },
+  { subject: "Weekly product digest", intent: "can_ignore" },
 ];
 
 function RecapSkeleton() {
@@ -78,13 +79,16 @@ function TriageSkeleton() {
         </p>
       </div>
       <ul className="overflow-hidden rounded-[10px] border border-border bg-surface opacity-60">
-        {["Expense receipt", "Fall schedule"].map((subject) => (
+        {[
+          { subject: "Expense receipt", intent: "needs_action" as const },
+          { subject: "Fall schedule", intent: "matters" as const },
+        ].map((row) => (
           <li
             className="flex items-center justify-between gap-3 border-b border-border px-3.5 py-2.5 last:border-b-0"
-            key={subject}
+            key={row.subject}
           >
-            <p className="truncate text-[12px] text-text-muted">{subject}</p>
-            <span className="size-1.5 shrink-0 rounded-full bg-border-strong" />
+            <p className="truncate text-[12px] text-text-muted">{row.subject}</p>
+            <IntentLabel className="shrink-0" intent={row.intent} />
           </li>
         ))}
       </ul>
@@ -100,7 +104,7 @@ function JudgmentSkeleton() {
           Model suggested
         </span>
         <div className="mt-2">
-          <IntentLabel full intent="cleanup_candidate" />
+          <IntentLabel full intent="matters" />
         </div>
       </div>
       <ArrowUpDown aria-hidden="true" className="size-4 rotate-90 text-text-subtle" />
@@ -139,7 +143,7 @@ function FeatureCard({
       className="group flex flex-col overflow-hidden rounded-[10px] border border-border-strong bg-surface transition-colors hover:border-primary/40"
       variants={variants}
     >
-      <div className="h-[220px] border-b border-border bg-surface-muted/60">
+      <div className="h-[260px] border-b border-border bg-surface-muted/60">
         <Skeleton />
       </div>
       <div className="flex items-center justify-between gap-3 px-5 py-4 sm:px-6">

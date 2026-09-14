@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { signInAction } from "@/app/actions/auth";
+import { AuthForm } from "@/components/auth/auth-form";
 import { AuthFrame } from "@/components/auth/auth-frame";
-import { PasswordFields } from "@/components/auth/password-fields";
-import { SubmitButton } from "@/components/forms/submit-button";
 import { Alert } from "@/components/ui/alert";
 import { getAuthMessage } from "@/lib/auth/messages";
 
@@ -38,10 +37,7 @@ export default async function SignInPage({
           {message}
         </Alert>
       ) : null}
-      <form action={signInAction} className="space-y-6">
-        <PasswordFields mode="sign-in" />
-        <SubmitButton>Sign in</SubmitButton>
-      </form>
+      <AuthForm action={signInAction} mode="sign-in" submitLabel="Sign in" />
     </AuthFrame>
   );
 }

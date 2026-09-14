@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { signUpAction } from "@/app/actions/auth";
+import { AuthForm } from "@/components/auth/auth-form";
 import { AuthFrame } from "@/components/auth/auth-frame";
-import { PasswordFields } from "@/components/auth/password-fields";
-import { SubmitButton } from "@/components/forms/submit-button";
 import { Alert } from "@/components/ui/alert";
 import { getAuthMessage } from "@/lib/auth/messages";
 
@@ -38,14 +37,12 @@ export default async function SignUpPage({
           {message}
         </Alert>
       ) : null}
-      <form action={signUpAction} className="space-y-6">
-        <PasswordFields mode="sign-up" />
+      <AuthForm action={signUpAction} mode="sign-up" submitLabel="Create account">
         <p className="text-xs leading-4 text-text-subtle">
           Creating an account does not connect to Gmail or Outlook. Mail access is
           requested separately and remains read-only.
         </p>
-        <SubmitButton>Create account</SubmitButton>
-      </form>
+      </AuthForm>
     </AuthFrame>
   );
 }

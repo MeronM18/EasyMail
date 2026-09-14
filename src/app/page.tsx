@@ -1,4 +1,5 @@
 import { FaqSection } from "@/components/marketing/faq-section";
+import { FeatureGrid } from "@/components/marketing/feature-grid";
 import { FeatureShowcase } from "@/components/marketing/feature-showcase";
 import { FinalCta } from "@/components/marketing/final-cta";
 import { Footer } from "@/components/marketing/footer";
@@ -20,6 +21,7 @@ export default function HomePage() {
       <TrustedBy />
       <ProductPreview />
       <ProblemSection />
+      <FeatureGrid />
       <HowItWorks />
       <FeatureShowcase />
       <IntegrationsSection />

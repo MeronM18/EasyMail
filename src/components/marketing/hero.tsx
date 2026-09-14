@@ -56,11 +56,6 @@ const heroFormVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE, delay: 0.62 } },
 };
 
-const heroHelperVariants: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE, delay: 0.7 } },
-};
-
 const heroArtworkVariants: Variants = {
   hidden: { opacity: 0, y: 48, scale: 0.965 },
   visible: {
@@ -127,7 +122,6 @@ export function Hero() {
   const bodyVariants = useSafeVariants(heroBodyVariants);
   const ctaVariants = useSafeVariants(heroCtaVariants);
   const formVariants = useSafeVariants(heroFormVariants);
-  const helperVariants = useSafeVariants(heroHelperVariants);
 
   return (
     <section className="relative overflow-hidden bg-[#FAFAFA]" ref={ref}>
@@ -148,7 +142,7 @@ export function Hero() {
 
           <motion.h1
             animate={animate}
-            className="mt-6 text-[clamp(2.75rem,6vw,6rem)] font-bold leading-[0.95] tracking-[-0.02em] text-text"
+            className="mt-3 text-[clamp(2.5rem,5.25vw,5.25rem)] font-bold leading-[0.95] tracking-[-0.02em] text-text"
             initial="hidden"
             variants={wordContainerVariants}
           >
@@ -223,15 +217,6 @@ export function Hero() {
               <ArrowRight aria-hidden="true" className="size-4" />
             </Button>
           </motion.form>
-
-          <motion.p
-            animate={animate}
-            className="mt-3 text-[12px] text-text-subtle"
-            initial="hidden"
-            variants={helperVariants}
-          >
-            No credit card. Join the waitlist.
-          </motion.p>
         </div>
         <HeroArtwork animate={animate} />
       </div>

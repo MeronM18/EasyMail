@@ -24,9 +24,9 @@ const navLinks = [
 export function MarketingNavbar() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
-      <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-6 lg:px-8">
+      <div className="mx-auto grid h-[72px] max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-6 lg:px-8 xl:w-[calc(100%-64px)] xl:max-w-[1280px] xl:px-10">
         <Link
-          className="brand-link -ml-1.5 inline-flex items-center gap-2 rounded-[var(--radius-md)] px-1.5 py-1"
+          className="brand-link -ml-1.5 inline-flex w-fit items-center gap-2 justify-self-start rounded-[var(--radius-md)] px-1.5 py-1"
           href="/"
         >
           <Image
@@ -42,7 +42,10 @@ export function MarketingNavbar() {
           </span>
         </Link>
 
-        <nav aria-label="Main" className="hidden items-center gap-8 md:flex">
+        <nav
+          aria-label="Main"
+          className="hidden items-center gap-10 justify-self-center lg:flex"
+        >
           {navLinks.map((link) => (
             <a
               className="text-sm font-medium text-text-muted transition-colors hover:text-text"
@@ -54,7 +57,7 @@ export function MarketingNavbar() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-6 justify-self-end lg:flex">
           <Link
             className="text-sm font-medium text-text-muted transition-colors hover:text-text"
             href="/sign-in"
@@ -77,7 +80,7 @@ export function MarketingNavbar() {
           <SheetTrigger asChild>
             <Button
               aria-label="Open menu"
-              className="md:hidden"
+              className="col-start-3 justify-self-end lg:hidden"
               size="icon"
               variant="ghost"
             >

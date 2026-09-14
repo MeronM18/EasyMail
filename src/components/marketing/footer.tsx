@@ -9,7 +9,7 @@ const productLinks = [
 
 const accountLinks = [
   { href: "/sign-in", label: "Sign in" },
-  { href: "/sign-up", label: "Get started" },
+  { href: "/sign-up", label: "Early access" },
 ];
 
 export function Footer() {

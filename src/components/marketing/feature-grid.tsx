@@ -129,7 +129,7 @@ type FeatureCardData = {
 const featureCards: FeatureCardData[] = [
   { title: "One recap. Every inbox.", icon: Layers, Skeleton: RecapSkeleton },
   { title: "Know what needs you.", icon: ArrowUpDown, Skeleton: TriageSkeleton },
-  { title: "You have the final say.", icon: UserCheck, Skeleton: JudgmentSkeleton },
+  { title: "Your judgment wins.", icon: UserCheck, Skeleton: JudgmentSkeleton },
 ];
 
 function FeatureCard({
@@ -173,7 +173,7 @@ export function FeatureGrid() {
   const staggerItem = useSafeVariants(staggerItemVariants);
 
   return (
-    <section className="border-b border-border bg-background">
+    <section className="border-b border-border bg-background" id="features">
       <div className="mx-auto max-w-6xl px-6 py-24 lg:px-8 lg:py-28">
         <RevealGroup className="grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-end lg:gap-10">
           <div>

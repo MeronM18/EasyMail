@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Eye, Lock, ShieldCheck, type LucideIcon } from "lucide-react";
+import { Clock, Eye, Lock, RotateCcw, ShieldCheck, type LucideIcon } from "lucide-react";
 import {
   bodyVariants,
   eyebrowVariants,
@@ -45,6 +45,13 @@ const trustPoints: Array<{
     title: "Short retention",
     description:
       "Message bodies are retained for up to 7 days and message records for up to 14 days.",
+  },
+  {
+    icon: RotateCcw,
+    number: "05",
+    title: "Your judgment wins",
+    description:
+      "Classification is a starting point, not a verdict. Correct any message and EasyMail keeps your decision on every future sync.",
   },
 ];
 

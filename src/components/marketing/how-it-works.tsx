@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  CheckCircle2,
-  Link2,
-  ListChecks,
-  RefreshCw,
-  Sparkles,
-  type LucideIcon,
-} from "lucide-react";
+import { Link2, ListChecks, Sparkles, type LucideIcon } from "lucide-react";
 import { useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import {
@@ -29,32 +22,23 @@ const steps: Array<{
   {
     icon: Link2,
     number: "01",
-    title: "Connect",
-    description: "Connect Gmail or Outlook with read-only access.",
-  },
-  {
-    icon: RefreshCw,
-    number: "02",
-    title: "Sync",
-    description: "Recent messages arrive quietly without changing the source inbox.",
+    title: "Connect your inboxes",
+    description:
+      "Link Gmail or Outlook with secure, read-only access. EasyMail syncs quietly in the background.",
   },
   {
     icon: Sparkles,
-    number: "03",
-    title: "Classify",
-    description: "Each message is assigned one of five clear attention intents.",
+    number: "02",
+    title: "EasyMail classifies what matters",
+    description:
+      "Every message becomes Reply, Action, Matters, or Can wait — no manual sorting.",
   },
   {
     icon: ListChecks,
-    number: "04",
-    title: "Recap",
-    description: "What needs a reply or action rises above everything that can wait.",
-  },
-  {
-    icon: CheckCircle2,
-    number: "05",
-    title: "Act",
-    description: "Open the original email to respond. EasyMail never acts for you.",
+    number: "03",
+    title: "Start with one focused recap",
+    description:
+      "Review what needs you first. Open the original message to respond — EasyMail never sends or acts for you.",
   },
 ];
 
@@ -98,7 +82,7 @@ export function HowItWorks() {
             className="mx-auto mt-6 max-w-xl text-[16px] leading-7 text-text-muted"
             variants={body}
           >
-            Five quiet steps preserve your existing email workflow while removing the
+            Three quiet steps preserve your existing email workflow while removing the
             repeated work of checking what matters.
           </motion.p>
         </RevealGroup>
@@ -129,7 +113,7 @@ export function HowItWorks() {
 
           <RevealGroup
             as="ol"
-            className="mt-14 border-y border-border lg:mt-8 lg:grid lg:grid-cols-5"
+            className="mt-14 border-y border-border lg:mt-8 lg:grid lg:grid-cols-3"
             staggerChildren={0.09}
           >
             {steps.map((step) => (

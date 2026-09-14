@@ -1,8 +1,10 @@
 "use client";
 
 import { Clock, Eye, Lock, RotateCcw, ShieldCheck, type LucideIcon } from "lucide-react";
+import { AnimatedNumber } from "@/components/marketing/animated-number";
 import {
   bodyVariants,
+  EASE,
   eyebrowVariants,
   headlineVariants,
   motion,
@@ -11,6 +13,25 @@ import {
   useSafeVariants,
   type Variants,
 } from "@/components/marketing/motion";
+
+// Every number here is a real, checkable product fact — not a usage or
+// traction metric. Never add fabricated counts to this list.
+const stats: Array<{ value: number; label: string }> = [
+  { value: 2, label: "Inboxes supported today" },
+  { value: 5, label: "Clear attention intents" },
+  { value: 7, label: "Day message-body retention" },
+  { value: 14, label: "Day message-record retention" },
+];
+
+const statCardVariants: Variants = {
+  hidden: { opacity: 0, y: 18, filter: "blur(6px)" },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.5, ease: EASE },
+  },
+};
 
 const trustPoints: Array<{
   icon: LucideIcon;
@@ -66,6 +87,7 @@ export function SecuritySection() {
   const body = useSafeVariants(bodyVariants);
   const badge = useSafeVariants(badgeVariants);
   const staggerItem = useSafeVariants(staggerItemVariants);
+  const statCard = useSafeVariants(statCardVariants);
   return (
     <section className="border-b border-border bg-surface" id="security">
       <div className="mx-auto max-w-6xl px-6 py-24 lg:px-8 lg:py-28">
@@ -131,6 +153,24 @@ export function SecuritySection() {
                   </p>
                 </div>
               </motion.li>
+            ))}
+          </RevealGroup>
+
+          <RevealGroup
+            as="div"
+            className="mt-14 grid grid-cols-2 gap-x-6 gap-y-10 border-t border-border pt-12 lg:grid-cols-4 lg:gap-x-8"
+            staggerChildren={0.1}
+          >
+            {stats.map((stat) => (
+              <motion.div key={stat.label} variants={statCard}>
+                <AnimatedNumber
+                  className="block text-[clamp(2rem,4vw,2.75rem)] font-semibold tracking-[-0.02em] text-text"
+                  value={stat.value}
+                />
+                <p className="mt-2 max-w-[160px] text-[13px] leading-5 text-text-muted">
+                  {stat.label}
+                </p>
+              </motion.div>
             ))}
           </RevealGroup>
         </div>

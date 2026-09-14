@@ -1,5 +1,14 @@
+import Image from "next/image";
 import Link from "next/link";
 
+/**
+ * Centered auth shell shared by sign-in/sign-up/forgot-password/
+ * update-password/check-email. Presentation only — every page still posts
+ * to its own existing server action; nothing about how auth works changed
+ * here, only how it looks. EasyMail has no GitHub/Google account-login
+ * (only Gmail/Outlook mailbox connection, a separate later step), so this
+ * intentionally does not add social login buttons.
+ */
 export function AuthFrame({
   title,
   description,
@@ -12,44 +21,50 @@ export function AuthFrame({
   footer?: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-background">
-      <header className="mx-auto flex h-[72px] w-full max-w-5xl items-center px-6 lg:px-8">
-        <Link className="flex items-center gap-3 text-text" href="/">
-          <span className="text-base font-semibold tracking-[-0.02em]">EasyMail</span>
-          <span className="hidden border-l border-border pl-3 text-[12px] leading-4 text-text-subtle sm:block">
-            Cross-inbox recap
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-16">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-40 left-1/2 h-[520px] w-[720px] -translate-x-1/2 rounded-full bg-primary/[0.08] blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-52 left-1/2 h-[420px] w-[620px] -translate-x-1/2 rounded-full bg-primary/[0.05] blur-3xl"
+      />
+
+      <div className="relative w-full max-w-[400px]">
+        <Link
+          className="brand-link mx-auto flex w-fit items-center gap-2 rounded-[var(--radius-md)] px-1.5 py-1"
+          href="/"
+        >
+          <Image
+            alt=""
+            aria-hidden="true"
+            className="size-[22px] shrink-0 rounded-[6px]"
+            height={22}
+            src="/logo.png"
+            width={22}
+          />
+          <span className="text-[15px] font-semibold tracking-[-0.02em] text-text">
+            EasyMail
           </span>
         </Link>
-      </header>
-      <div className="mx-auto grid w-full max-w-5xl gap-12 px-6 pb-16 pt-12 md:grid-cols-[minmax(0,400px)_minmax(0,1fr)] md:gap-20 md:pt-20 lg:gap-28 lg:px-8">
-        <div>
-          <section>
-            <h1 className="text-2xl font-semibold leading-8 tracking-[-0.02em] text-text">
-              {title}
-            </h1>
-            <p className="mt-2 text-sm leading-[22px] text-text-muted">{description}</p>
-            <div className="mt-7">{children}</div>
-          </section>
-          {footer ? (
-            <div className="mt-6 text-[13px] leading-5 text-text-muted">{footer}</div>
-          ) : null}
+
+        <div className="mt-8 text-center">
+          <h1 className="text-2xl font-semibold leading-8 tracking-[-0.02em] text-text">
+            {title}
+          </h1>
+          <p className="mt-2 text-sm leading-[22px] text-text-muted">{description}</p>
         </div>
-        <aside className="border-t border-border pt-7 md:border-l md:border-t-0 md:pl-10 md:pt-1 lg:pl-12">
-          <p className="text-[12px] font-medium leading-4 text-text-subtle">
-            What EasyMail does
-          </p>
-          <h2 className="mt-3 max-w-sm text-xl font-semibold leading-7 tracking-[-0.015em] text-text">
-            One place to decide where your attention goes next.
-          </h2>
-          <p className="mt-4 max-w-sm text-sm leading-[22px] text-text-muted">
-            EasyMail organizes a focused recap across your connected inboxes. Your mail
-            stays in Gmail and Outlook, where you continue to read and reply.
-          </p>
-          <p className="mt-8 max-w-sm border-t border-border pt-5 text-[12px] leading-5 text-text-subtle">
-            Connecting a mailbox is a separate, read-only step. EasyMail does not send,
-            archive, or delete email for you.
-          </p>
-        </aside>
+
+        <div className="mt-8 rounded-[16px] border border-border bg-surface p-7 shadow-[0_20px_50px_rgba(18,18,18,0.06)]">
+          {children}
+        </div>
+
+        {footer ? (
+          <div className="mt-6 text-center text-[13px] leading-5 text-text-muted">
+            {footer}
+          </div>
+        ) : null}
       </div>
     </main>
   );

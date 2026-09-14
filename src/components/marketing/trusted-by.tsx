@@ -34,7 +34,7 @@ function useHasMounted() {
 
 function MarkFrame({ children }: { children: ReactNode }) {
   return (
-    <svg aria-hidden="true" className="size-5 shrink-0" viewBox="0 0 24 24">
+    <svg aria-hidden="true" className="size-6 shrink-0" viewBox="0 0 24 24">
       {children}
     </svg>
   );
@@ -118,10 +118,10 @@ const logoSets: Logo[][] = [
         <Image
           alt=""
           aria-hidden="true"
-          className="size-5 shrink-0"
-          height={20}
+          className="size-6 shrink-0"
+          height={24}
           src="/hero/slack.svg"
-          width={20}
+          width={24}
         />
       ),
     },
@@ -196,7 +196,7 @@ function LogoSet({ logos }: { logos: Logo[] }) {
       {logos.map((logo) => (
         <li
           aria-label={logo.name}
-          className="flex items-center justify-center gap-2.5 text-[16px] font-semibold tracking-[-0.02em] text-text-muted"
+          className="flex items-center justify-center gap-3 text-[18px] font-semibold tracking-[-0.02em] text-text-muted"
           key={logo.name}
           role="img"
         >
@@ -248,7 +248,7 @@ export function TrustedBy() {
             Built for people managing work, school, and everything in between.
           </motion.p>
           <motion.div
-            className="relative mt-10 h-[116px] w-full overflow-hidden lg:h-[64px]"
+            className="relative mt-10 h-[130px] w-full overflow-hidden lg:h-[76px]"
             variants={body}
           >
             {showStatic ? (
@@ -259,7 +259,7 @@ export function TrustedBy() {
                 {logoSets[0].map((logo) => (
                   <li
                     aria-label={logo.name}
-                    className="flex items-center justify-center gap-2.5 text-[16px] font-semibold tracking-[-0.02em] text-text-muted"
+                    className="flex items-center justify-center gap-3 text-[18px] font-semibold tracking-[-0.02em] text-text-muted"
                     key={logo.name}
                     role="img"
                   >

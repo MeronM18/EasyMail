@@ -162,12 +162,12 @@ export function SecuritySection() {
             staggerChildren={0.1}
           >
             {stats.map((stat) => (
-              <motion.div key={stat.label} variants={statCard}>
+              <motion.div className="text-center" key={stat.label} variants={statCard}>
                 <AnimatedNumber
                   className="block text-[clamp(2rem,4vw,2.75rem)] font-semibold tracking-[-0.02em] text-text"
                   value={stat.value}
                 />
-                <p className="mt-2 max-w-[160px] text-[13px] leading-5 text-text-muted">
+                <p className="mx-auto mt-2 max-w-[160px] text-[13px] leading-5 text-text-muted">
                   {stat.label}
                 </p>
               </motion.div>

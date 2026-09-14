@@ -30,10 +30,14 @@ type MotionTag = keyof typeof motionTags;
 
 /**
  * Shared motion language for the landing page (Linear-precision / Attio-pacing):
- * one easing curve, one set of entrance presets, and one repeatable
+ * one easing curve, one set of entrance presets, and one shared
  * viewport-intersection hook used everywhere instead of one-off
- * IntersectionObservers. Nothing here uses `once: true` — every reveal is
- * built to reset on meaningful exit and replay on re-entry.
+ * IntersectionObservers. Every standard section reveal fires once on first
+ * entry and then stays visible — it never resets or replays on scroll-away
+ * / scroll-back. This is separate from the scroll-linked mechanics
+ * (FeatureShowcase's sticky Recap/Triage crossfade, HowItWorks' connector),
+ * which track continuous scroll position directly and are unaffected by
+ * this hook.
  */
 
 export const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -43,13 +47,13 @@ type RevealInViewOptions = {
   margin?: UseInViewOptions["margin"];
 };
 
-/** Repeatable viewport intersection — never disconnects, never `once`. */
+/** One-shot viewport intersection — reveals once, then stays visible. */
 export function useRevealInView(options?: RevealInViewOptions) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, {
-    once: false,
+    once: true,
     amount: options?.amount ?? 0.3,
-    // Shrinks the effective viewport on both edges so entry/exit require a
+    // Shrinks the effective viewport on both edges so entry requires a
     // meaningful crossing rather than toggling right at the pixel edge.
     margin: options?.margin ?? "-10% 0px -12% 0px",
   });
@@ -118,11 +122,11 @@ const kindVariants: Record<RevealKind, Variants> = {
 };
 
 /**
- * Generic repeatable entrance reveal for a single element. For sections that
+ * Generic one-shot entrance reveal for a single element. For sections that
  * need eyebrow -> headline -> body -> visual hierarchy, wrap them in a
  * `RevealGroup` and give each a `kind` so they all react to one shared
  * viewport state instead of independent observers (this is what prevents
- * inconsistent per-element replay near the viewport boundary).
+ * inconsistent per-element reveal timing near the viewport boundary).
  */
 export function Reveal({
   children,
@@ -162,7 +166,8 @@ export function Reveal({
 /**
  * Orchestrates a group of `Reveal`-shaped children off ONE shared viewport
  * state (one observer, not one per child) so eyebrow/headline/body/visual
- * always replay together, in order, every time the section is revisited.
+ * always reveal together, in order, the first time the section enters view —
+ * then stay visible for the rest of the page session.
  * Children should be `motion.*` elements using `variants={kindVariants[...]}`
  * — Framer propagates this container's animate state to them automatically.
  */

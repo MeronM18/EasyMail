@@ -14,9 +14,9 @@ import {
 
 /**
  * Hero has its own entrance system (Motion System A) — separate from the
- * repeatable viewport reveals used everywhere else, but built on the same
- * `useRevealInView` primitive so it replays if the Hero meaningfully leaves
- * and re-enters the viewport, exactly like every other section.
+ * standard viewport reveals used everywhere else, but built on the same
+ * `useRevealInView` primitive, so it reveals once on first entry and then
+ * stays visible, exactly like every other section.
  */
 
 const heroEyebrowVariants: Variants = {
@@ -117,8 +117,8 @@ function HeroArtwork({ animate }: { animate: "visible" | "hidden" }) {
 
 export function Hero() {
   // A larger amount + shallower margin than the standard reveal: the Hero
-  // should stay "entered" through ordinary top-of-page scroll wobble, and
-  // only reset once it has genuinely left the viewport (not on tiny nudges).
+  // is in view on first load almost by definition, so this just avoids the
+  // one-shot entrance firing on a sub-pixel layout/hydration wobble.
   const { ref, inView } = useRevealInView({ amount: 0.35, margin: "-5% 0px -20% 0px" });
   const animate = inView ? "visible" : "hidden";
 

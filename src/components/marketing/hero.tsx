@@ -124,8 +124,11 @@ export function Hero() {
   const formVariants = useSafeVariants(heroFormVariants);
 
   return (
-    <section className="relative overflow-hidden bg-[#FAFAFA]" ref={ref}>
-      <div className="relative mx-auto flex max-w-6xl flex-col justify-center px-6 py-20 lg:min-h-[85vh] lg:px-8 lg:py-0 xl:w-[calc(100%-64px)] xl:max-w-[1280px] xl:px-10">
+    <section
+      className="relative flex flex-1 flex-col overflow-hidden bg-[#FAFAFA]"
+      ref={ref}
+    >
+      <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-6 py-20 lg:px-8 lg:py-0 xl:w-[calc(100%-64px)] xl:max-w-[1280px] xl:px-10">
         <div className="max-w-xl">
           <motion.span
             animate={animate}

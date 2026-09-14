@@ -23,7 +23,7 @@ const navLinks = [
 
 export function MarketingNavbar() {
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
+    <header className="border-b border-border/70 bg-background">
       <div className="mx-auto grid h-[72px] max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-6 lg:px-8 xl:w-[calc(100%-64px)] xl:max-w-[1280px] xl:px-10">
         <Link
           className="brand-link -ml-1.5 inline-flex w-fit items-center gap-2 justify-self-start rounded-[var(--radius-md)] px-1.5 py-1"

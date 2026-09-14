@@ -129,7 +129,7 @@ type FeatureCardData = {
 const featureCards: FeatureCardData[] = [
   { title: "One recap. Every inbox.", icon: Layers, Skeleton: RecapSkeleton },
   { title: "Know what needs you.", icon: ArrowUpDown, Skeleton: TriageSkeleton },
-  { title: "Your judgment wins.", icon: UserCheck, Skeleton: JudgmentSkeleton },
+  { title: "You have the final say.", icon: UserCheck, Skeleton: JudgmentSkeleton },
 ];
 
 function FeatureCard({
